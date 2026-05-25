@@ -1,0 +1,90 @@
+const fs = require("fs");
+const path = require("path");
+const config = require("../config.json");
+
+let autoJoin;
+try { autoJoin = require("./autoJoin"); } catch { autoJoin = null; }
+
+let lastSentTime = 0;
+
+module.exports = {
+    name: "connection.update",
+    async execute(sock, update) {
+        const now = Date.now();
+        if (update.connection === "open") {
+            // Attendre que isReady et que la connexion tienne au moins 15s
+            const stableDelay = 15000;
+            const start = now;
+
+            while (Date.now() - start < stableDelay) {
+                if (!sock.isReady || update.connection !== "open") {
+                    console.log("⏳ Connexion instable, annulation envoi");
+                    return;
+                }
+                await new Promise(r => setTimeout(r, 1000));
+                // update.connection peut avoir changé depuis l'extérieur
+                // on sort si la connexion est perdue
+                if (sock.ws?.readyState !== 1) return;
+            }
+
+            // Vérifier qu’on n’a pas déjà envoyé récemment (10 min)
+            if (now - lastSentTime < 600000) {
+                console.log("ℹ️ Message déjà envoyé récemment, ignoré");
+                return;
+            }
+
+            if (!sock.isReady) return;
+
+            const myJid = sock.user.id.replace(/:\d+/, "") + "@s.whatsapp.net";
+            const emoji = config.emoji || "🍷";
+            const botName = config.botName || "Bot";
+            const prefix = config.prefix || ".";
+
+            const send = async (msg) => {
+                try {
+                    await sock.sendMessage(myJid, msg);
+                    return true;
+                } catch (err) {
+                    console.error("❌ Erreur envoi:", err.message);
+                    return false;
+                }
+            };
+
+            console.log("📤 Envoi du message de connexion...");
+            let ok = true;
+
+            ok = ok && await send({ text: `${emoji} *${botName}* est connecté !\nUtilisez *${prefix}menu* pour voir les commandes.` });
+            await new Promise(r => setTimeout(r, 2000));
+
+            const imgPath = path.join(__dirname, "../media/logoconnect.jpg");
+            if (fs.existsSync(imgPath)) {
+                ok = ok && await send({
+                    image: fs.readFileSync(imgPath),
+                    caption: `┌─────────────────────\n┝ ➩ ${emoji} 𝐂𝐨𝐧𝐧𝐞𝐜𝐭𝐢𝐨𝐧 𝐞𝐟𝐟𝐞𝐜𝐭𝐮𝐞́ ${emoji}\n┝─────────────────────\n┝ ➩ *${botName}* Connection reussit${emoji}\n┝ ➩ utilise *${prefix}menu* pour voir les commands\n└─────────────────────\n> Powered by ©Mr Marco`
+                });
+            }
+            await new Promise(r => setTimeout(r, 2000));
+
+            const audPath = path.join(__dirname, "../media/Phonk.mp3");
+            if (fs.existsSync(audPath)) {
+                ok = ok && await send({
+                    audio: fs.readFileSync(audPath),
+                    mimetype: "audio/mpeg",
+                    ptt: false
+                });
+            }
+
+            if (ok) {
+                lastSentTime = now;
+                console.log("✅ Message de connexion envoyé avec succès");
+            } else {
+                console.log("⚠️ Échec partiel, nouvelle tentative possible plus tard");
+            }
+
+            // Auto-join
+            if (autoJoin) {
+                try { await autoJoin(sock, myJid); } catch (e) { console.error("❌ autoJoin:", e.message); }
+            }
+        }
+    }
+};

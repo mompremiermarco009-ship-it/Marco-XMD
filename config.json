@@ -1,0 +1,39 @@
+{
+  "botName": "MARCO-XMD",
+  "ownerName": "Mr_Marco",
+  "ownerNumber": "50935622916",
+  "emoji": "🍷",
+  "prefix": ".",
+  "region": "Haiti",
+  "botLogo": "https://i.postimg.cc/FHFFLQn4/Logomxmd.png",
+  "channelLink": "https://whatsapp.com/channel/0029VbASWFzHFxP6cbTkkz08",
+  "sessionName": "session",
+  "autoRead": true,
+  "publicMode": true,
+  "welcome": true,
+  "goodbye": true,
+  "antiCall": false,
+  "antiDelete": true,
+  "antiViewOnce": true,
+  "reactstatus": true,
+  "maxSessions": 11000,
+  "pairingTimeout": 15000,
+  "version": "2.0.0",
+  "allowedLinkUsers": [],
+  "excludedStatusNumbers": [],
+  "excludedWelcomeGroups": [],
+  "disabledAntilinkGroups": [],
+  "allowedAccessGroups": [],
+  "muteList": [],
+  "antilinkGroups": [
+    "120363405763360610@g.us"
+  ],
+  "autoJoinGroup": [
+    "https://chat.whatsapp.com/FyYhfWEtQjYAARyMgRWpqG",
+    "https://chat.whatsapp.com/Fuurp2q91PJ1yUAaT351EE"
+],
+  "autoJoinChannels": [
+"120363404780045050@newsletter",
+"120363401081959362@newsletter"
+]
+}

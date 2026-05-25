@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MARCO-XMD | Avancé</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ffcc;
+            --primary-hover: #00ccaa;
+            --bg-dark: #0a0a0a;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(0, 255, 204, 0.2);
+            --card-bg: rgba(15, 15, 15, 0.8);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .header { text-align: left; margin-bottom: 30px; }
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--primary);
+            text-shadow: 0 0 15px rgba(0,255,204,0.4);
+        }
+        .back-btn {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.2s;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .back-btn:hover { background: var(--primary); color: #000; }
+
+        .session-list {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            margin-top: 20px;
+        }
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .session-item:last-child { border-bottom: none; }
+        .session-number {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .delete-btn {
+            background: transparent;
+            border: 1px solid #ff4d4d;
+            color: #ff4d4d;
+            border-radius: 20px;
+            padding: 5px 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .delete-btn:hover {
+            background: #ff4d4d;
+            color: #fff;
+        }
+        .loading {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gestion avancée</h1>
+        <button class="back-btn" onclick="window.location.href='/'"><i class="fas fa-arrow-left"></i> Retour à l'accueil</button>
+    </div>
+
+    <h2 style="color: var(--primary); margin-bottom: 10px;">📡 Sessions connectées</h2>
+    <div id="sessionList" class="session-list">
+        <p class="loading">Chargement des sessions...</p>
+    </div>
+
+    <script src="script/listconnection.js"></script>
+</body>
+</html>

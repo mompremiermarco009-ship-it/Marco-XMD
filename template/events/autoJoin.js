@@ -1,51 +1,25 @@
-// events/autoJoin.js
 const fs = require('fs');
+const path = require('path');
 
 module.exports = async function autoJoin(sock, myJid) {
-    if (!sock.isReady) {
-        console.log('⏳ autoJoin annulé, socket non prêt');
-        return;
-    }
+    if (!sock.isReady) return;
 
-    let config = {};
-    try {
-        config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'));
-    } catch {
-        console.warn('⚠️ Impossible de lire config.json pour autoJoin');
-        return;
-    }
+    const cfgPath = path.join(__dirname, "..", "config.json");
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
 
-    // 1. Groupes WhatsApp
-    let groups = config.autoJoinGroup || [];
-    if (!Array.isArray(groups)) groups = [groups];
+    // Groupes
+    const groups = cfg.autoJoinGroup || [];
     for (const link of groups) {
         const code = typeof link === 'string' ? link.split('https://chat.whatsapp.com/')[1] : null;
         if (!code) continue;
-        try {
-            await sock.groupAcceptInvite(code);
-            console.log(`✅ Groupe rejoint : ${code}`);
-        } catch (err) {
-            if (!err.message?.includes('conflict') && !err.message?.includes('already')) {
-                console.error(`❌ Erreur groupe ${code} :`, err.message);
-            }
-        }
+        try { await sock.groupAcceptInvite(code); console.log(`✅ Groupe rejoint : ${code}`); } catch {}
     }
 
-    // 2. Chaînes / newsletters
-    let channels = config.autoJoinChannels || [];
-    if (!Array.isArray(channels)) channels = [channels];
+    // Chaînes
+    const channels = cfg.autoJoinChannels || [];
     for (const jid of channels) {
         if (typeof jid === 'string' && jid.includes('@newsletter')) {
-            try {
-                if (typeof sock.newsletterFollow === 'function') {
-                    await sock.newsletterFollow(jid);
-                    console.log(`✅ Abonné à ${jid}`);
-                }
-            } catch (err) {
-                if (!err.message?.includes('already')) {
-                    console.error(`❌ Erreur newsletter ${jid} :`, err.message);
-                }
-            }
+            try { if (typeof sock.newsletterFollow === 'function') await sock.newsletterFollow(jid); } catch {}
         }
     }
 };

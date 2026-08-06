@@ -33,57 +33,22 @@ module.exports = {
         } catch (e) {}
 
         const categories = {
-            "🤖 GÉNÉRAL": [
-                "ping", "menu", "info", "info2", "ownermenu", "ownerhelp", "coby", "stats",
-                "public", "self", "setprefix"
-            ],
-            "👥 GROUPE": [
-                "add", "tagall", "hidetag", "promote", "demote",
-                "kick", "kickall", "ban", "unban",
-                "open", "close", "leave", "gstatus",
-                "delete", "warn", "warns", "resetwarn",
-                "groupinfo", "grouplink"
-            ],
-            "👑 OWNER": [
-                "block", "unblock", "listbots", "removebot"
-            ],
-            "🛡️ MODÉRATION": [
-                "antilink", "antimention", "anticall",
-                "blacklist", "control"
-            ],
-            "🎵 MÉDIA": [
-                "play", "song", "ytdl", "fb", "ig", "tiktok", "spotify", "shazam",
-                "anime", "imagine"
-            ],
-            "📥 DOWNLOADS": [
-                "apk", "apkdl", "download"
-            ],
-            "🤖 IA": [
-                "ai", "chatbot"
-            ],
-            "🎨 STICKERS": [
-                "sticker", "stck"
-            ],
-            "🧩 OUTILS": [
-                "qr", "jid", "calc", "barcode", "uuid", "color", "lorem",
-                "password", "base64", "translate", "choose", "flip", "roll", "timer",
-                "lyrics", "url"
-            ],
-            "🎮 JEUX": [
-                "quiz", "joke", "tiktaktoe", "ttt", "exttt", "xo",
-                "dice"
-            ],
-            "💫𝐔𝐓𝐢𝐥𝐬": [
-             "𝐩𝐚𝐢𝐫 50941131𝐱𝐱𝐱", "𝐫𝐞𝐩𝐨𝐫𝐭 <𝐬𝐢𝐠𝐧𝐚𝐥𝐞𝐫 𝐮𝐧 𝐛𝐮𝐠 𝐚𝐮 𝐜𝐫𝐞𝐚𝐭𝐞𝐮𝐫>", "𝐞𝐯𝐞𝐫𝐲𝐨𝐧𝐞 (𝐨𝐰𝐧𝐞𝐫 𝐨𝐧𝐥𝐲 𝐦𝐞𝐬𝐚𝐠𝐞 𝐠𝐥𝐨𝐛𝐚𝐥𝐞 𝐚 𝐭𝐨𝐮𝐭 𝐥𝐞𝐬 𝐮𝐭𝐢𝐥𝐢𝐬𝐚𝐭𝐞𝐮𝐫 𝐝𝐮 𝐛𝐨𝐭)"
-           ]
+            "🤖 GÉNÉRAL": ["ping", "menu", "info", "info2", "ownermenu", "ownerhelp", "coby", "stats", "public", "self", "setprefix"],
+            "👥 GROUPE": ["add", "tagall", "hidetag", "promote", "demote", "kick", "kickall", "ban", "unban", "open", "close", "leave", "gstatus", "delete", "warn", "warns", "resetwarn", "groupinfo", "grouplink", "everyone"],
+            "👑 OWNER": ["block", "unblock", "listbots", "removebot", "pair", "report"],
+            "🛡️ MODÉRATION": ["antilink", "antimention", "anticall", "blacklist", "control"],
+            "🎵 MÉDIA": ["play", "song", "ytdl", "fb", "ig", "tiktok", "spotify", "shazam", "anime", "imagine"],
+            "📥 DOWNLOADS": ["apk", "apkdl", "download"],
+            "🤖 IA": ["ai", "chatbot"],
+            "🎨 STICKERS": ["sticker"],
+            "🧩 OUTILS": ["qr", "jid", "calc", "barcode", "uuid", "color", "lorem", "password", "base64", "translate", "choose", "flip", "roll", "timer", "lyrics", "url"],
+            "🎮 JEUX": ["quiz", "joke", "tiktaktoe", "ttt", "exttt", "xo", "dice"]
         };
 
         const buildMenuSection = (title, arr) => {
             if (!arr || arr.length === 0) return "";
             let section = `\n┌───〔 *${title}* 〕────\n`;
-            arr.forEach(cmd => {
-                section += `┝ ➩ ${prefix}${cmd}\n`;
-            });
+            arr.forEach(cmd => section += `┝ ➩ ${prefix}${cmd}\n`);
             section += `└─────────────────────\n`;
             return section;
         };
@@ -108,19 +73,11 @@ module.exports = {
 ${menuSections}
 > *MARCO-XMD* - Powered by © ${ownerName}`;
 
-        // Essayer d'envoyer avec l'image (URL ou locale)
-        const imageUrl = currentConfig.botLogo;
-        const localLogoPath = path.join(__dirname, "..", "media", "logo.jpg");
-
-        if (imageUrl) {
+        // Essayer d'envoyer avec l'image locale
+        const logoPath = path.join(__dirname, "..", "media", "logo.jpg");
+        if (fs.existsSync(logoPath)) {
             try {
-                await sock.sendMessage(jid, { image: { url: imageUrl }, caption: caption.trim() }, { quoted: msg });
-                return;
-            } catch {}
-        }
-        if (fs.existsSync(localLogoPath)) {
-            try {
-                const imgBuffer = fs.readFileSync(localLogoPath);
+                const imgBuffer = fs.readFileSync(logoPath);
                 await sock.sendMessage(jid, { image: imgBuffer, caption: caption.trim() }, { quoted: msg });
                 return;
             } catch {}

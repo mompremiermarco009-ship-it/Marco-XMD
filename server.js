@@ -11,6 +11,10 @@ app.use(express.json({ limit: "5kb" }));
 // Servir les fichiers statiques depuis le dossier public
 app.use(express.static(path.join(__dirname, "public")));
 
+// Dashboard admin MARCO-XMD (public/admin.html) — API en lecture/écriture
+// sur les sessions, sudo, bannis, commandes, logs et paramètres.
+app.use("/api/admin", require("./admin-routes.js"));
+
 // Rate limiter (avis)
 const avisRequestCounts = new Map();
 function rateLimiter(maxRequests, windowMs) {

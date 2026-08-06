@@ -2,101 +2,85 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MARCO-XMD | Avancé</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #00ffcc;
-            --primary-hover: #00ccaa;
-            --bg-dark: #0a0a0a;
-            --text-primary: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --border-color: rgba(0, 255, 204, 0.2);
-            --card-bg: rgba(15, 15, 15, 0.8);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --neon: #00d4ff;
+            --neon-dim: #0077b6;
+            --bg: #0d0d0d;
+            --text: #e0e0e0;
+            --text-dim: #9a9a9a;
+            --border: rgba(0, 212, 255, 0.2);
+            --card-bg: rgba(20, 20, 30, 0.9);
+            --metal-dark: #1c1c1c;
+            --danger: #ff4757;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             padding: 40px 20px;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(0,212,255,0.03) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(0,212,255,0.05) 0%, transparent 40%),
+                linear-gradient(45deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%),
+                linear-gradient(-45deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%);
+            background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
         }
         .header { text-align: left; margin-bottom: 30px; }
         .header h1 {
+            font-family: 'Orbitron', sans-serif;
             font-size: clamp(2rem, 5vw, 3rem);
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            color: var(--primary);
-            text-shadow: 0 0 15px rgba(0,255,204,0.4);
+            font-weight: 900;
+            color: var(--neon);
+            text-shadow: 0 0 15px var(--neon);
         }
         .back-btn {
             background: transparent;
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 8px 16px;
-            border-radius: 30px;
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            padding: 8px 20px;
+            font-family: 'Share Tech Mono', monospace;
+            text-transform: uppercase;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: 0.2s;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+            transition: 0.3s;
             display: inline-block;
             margin-bottom: 20px;
         }
-        .back-btn:hover { background: var(--primary); color: #000; }
-
+        .back-btn:hover { background: var(--neon); color: #000; }
         .session-list {
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border: 1px solid var(--border);
+            clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%);
             padding: 20px;
-            backdrop-filter: blur(10px);
-            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
         }
         .session-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
         }
         .session-item:last-child { border-bottom: none; }
-        .session-number {
-            font-weight: 600;
-            color: var(--primary);
-        }
+        .session-number { font-family: 'Share Tech Mono', monospace; color: var(--neon); }
         .delete-btn {
             background: transparent;
-            border: 1px solid #ff4d4d;
-            color: #ff4d4d;
-            border-radius: 20px;
+            border: 1px solid var(--danger);
+            color: var(--danger);
             padding: 5px 12px;
             cursor: pointer;
-            transition: 0.2s;
-            font-size: 0.9rem;
+            font-family: 'Share Tech Mono', monospace;
+            text-transform: uppercase;
+            clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+            transition: 0.3s;
         }
-        .delete-btn:hover {
-            background: #ff4d4d;
-            color: #fff;
-        }
-        .loading {
-            color: var(--text-secondary);
-        }
+        .delete-btn:hover { background: var(--danger); color: #fff; }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h1>Gestion avancée</h1>
-        <button class="back-btn" onclick="window.location.href='/'"><i class="fas fa-arrow-left"></i> Retour à l'accueil</button>
-    </div>
-
-    <h2 style="color: var(--primary); margin-bottom: 10px;">📡 Sessions connectées</h2>
-    <div id="sessionList" class="session-list">
-        <p class="loading">Chargement des sessions...</p>
-    </div>
-
-    <script src="script/listconnection.js"></script>
-</body>
-</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MARCO-XMD - Jeux</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon: #00d4ff;
+            --neon-dim: #0077b6;
+            --bg: #0d0d0d;
+            --text: #e0e0e0;
+            --border: rgba(0, 212, 255, 0.2);
+            --card-bg: rgba(20, 20, 30, 0.9);
+            --metal-dark: #1c1c1c;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(0,212,255,0.03) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(0,212,255,0.05) 0%, transparent 40%),
+                linear-gradient(45deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%),
+                linear-gradient(-45deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%);
+            background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+        }
+        .top-bar {
+            background: var(--metal-dark);
+            border-bottom: 2px solid var(--neon);
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+        }
+        .back-link { color: var(--neon); text-decoration: none; font-family: 'Share Tech Mono', monospace; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .top-title { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900; color: var(--neon); text-shadow: 0 0 10px var(--neon); }
+        .content { max-width: 1100px; margin: 0 auto; padding: 32px; }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%);
+            padding: 28px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+        .card-title { font-family: 'Orbitron', sans-serif; font-size: 24px; color: var(--neon); text-shadow: 0 0 10px var(--neon-dim); margin-bottom: 20px; }
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 18px;
+        }
+        .game-card {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+            aspect-ratio: 1/1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon);
+            box-shadow: 0 0 20px var(--neon-dim);
+        }
+        .game-card i { font-size: 2rem; color: var(--neon); }
+        .modal {
+            display: none; position: fixed; top:0;left:0;width:100%;height:100%;
+            background: rgba(0,0,0,0.85); z-index: 1000;
+            justify-content: center; align-items: center;
+            backdrop-filter: blur(8px);
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--metal-dark);
+            border: 2px solid var(--neon);
+            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+            padding: 25px;
+            width: 95%;
+            max-width: 500px;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+            text-align: center;
+        }
+        .modal-close {
+            position: absolute; top: 10px; right: 15px;
+            font-size: 2rem; color: var(--neon);
+            cursor: pointer; background: none; border: none;
+        }
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <a class="back-link" href="/"><i class="fas fa-arrow-left"></i> Retour</a>
+    <div class="top-title">🕹️ Mini-Jeux MARCO-XMD</div>
+</div>
+<div class="content">
+    <div class="card">
+        <div class="card-title">/ games /</div>
+        <div class="game-grid">
+            <div class="game-card" onclick="openGame('snake')"><i class="fas fa-snake"></i><span>Snake</span></div>
+            <div class="game-card" onclick="openGame('tictactoe')"><i class="fas fa-times-circle"></i><span>Morpion</span></div>
+            <div class="game-card" onclick="openGame('runner')"><i class="fas fa-running"></i><span>Runner</span></div>
+            <div class="game-card" onclick="openGame('flappy')"><i class="fas fa-feather-alt"></i><span>Flappy</span></div>
+            <div class="game-card" onclick="openGame('pong')"><i class="fas fa-table-tennis"></i><span>Pong</span></div>
+            <div class="game-card" onclick="openGame('2048')"><i class="fas fa-th"></i><span>2048</span></div>
+            <div class="game-card" onclick="openGame('invaders')"><i class="fas fa-rocket"></i><span>Invaders</span></div>
+            <div class="game-card" onclick="openGame('tetris')"><i class="fas fa-cubes"></i><span>Tetris</span></div>
+            <div class="game-card" onclick="openGame('whack')"><i class="fas fa-hammer"></i><span>Whack</span></div>
+            <div class="game-card" onclick="openGame('quizgame')"><i class="fas fa-question-circle"></i><span>Quiz</span></div>
+            <div class="game-card" onclick="openGame('calc')"><i class="fas fa-calculator"></i><span>Calcul</span></div>
+            <div class="game-card" onclick="openGame('memory')"><i class="fas fa-brain"></i><span>Memory</span></div>
+            <div class="game-card" onclick="openGame('calcgame')"><i class="fas fa-brain"></i><span>Calcul mental</span></div>
+            <div class="game-card" onclick="openGame('search')"><i class="fas fa-search"></i><span>Recherche</span></div>
+        </div>
+    </div>
+</div>
+
+<div id="gameModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeGame()">&times;</span>
+        <h3 id="gameTitle" style="color:var(--neon); font-family:'Orbitron',sans-serif;"></h3>
+        <div id="gameContainer"></div>
+        <div id="gameControls"></div>
+    </div>
+</div>
+
+<script>
+const gameModal = document.getElementById('gameModal');
+const gameTitleEl = document.getElementById('gameTitle');
+const gameContainer = document.getElementById('gameContainer');
+const gameControls = document.getElementById('gameControls');
+let currentGameObj = null;
+
+async function openGame(game) {
+    if (currentGameObj) { try { currentGameObj.stop(); } catch(e) {} currentGameObj = null; }
+    gameContainer.innerHTML = ''; gameControls.innerHTML = '';
+    gameModal.classList.add('active');
+    const titles = {
+        snake:'🐍 Snake', tictactoe:'❌⭕ Morpion', runner:'🏃 Runner', flappy:'🐦 Flappy Bird',
+        pong:'🏓 Pong', '2048':'🔢 2048', invaders:'👾 Space Invaders', tetris:'🧩 Tetris',
+        whack:'🔨 Whack-a-Mole', quizgame:'❓ Quiz', calc:'🔢 Calculatrice', memory:'🧠 Memory',
+        calcgame:'🧮 Calcul mental', search:'🔍 Recherche'
+    };
+    gameTitleEl.textContent = titles[game] || game;
+    try {
+        const mod = await import(`./script/${game}.js`);
+        currentGameObj = mod.default(gameContainer, gameControls);
+    } catch (err) {
+        gameContainer.innerHTML = '<p style="color:var(--danger);">Erreur de chargement.</p>';
+        console.error(err);
+    }
+}
+function closeGame() {
+    if (currentGameObj) { try { currentGameObj.stop(); } catch(e) {} currentGameObj = null; }
+    gameModal.classList.remove('active');
+    gameContainer.innerHTML = ''; gameControls.innerHTML = '';
+}
+window.onclick = (e) => { if (e.target === gameModal) closeGame(); };
+</script>
+</body>
+</html>

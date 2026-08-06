@@ -33,8 +33,7 @@ module.exports = {
             expires: Date.now() + 60000 // 1 minute pour répondre
         });
 
-        const caption = `┌───〔 🎬 *${video.title}* 〕────\n┝ ➩ ⏱ *${video.timestamp}*\n┝ ➩ 👀 *${video.views}* vues\n└─────────────────────\n\n*Choisissez le format :*\n1️⃣ Audio (MP3)\n2️⃣ Vidéo (MP4)\n3️⃣ Document (Fichier)\n\nRépondez simplement par *1*, *2* ou *3*`;
-
+        const caption = `┌───〔 🎬 *${video.title}* 〕────\n┝ ➩ ⏱ *${video.timestamp}*\n┝ ➩ 👀 *${video.views}* vues\n└─────────────────────\n\n*Choisissez le format :*\n1️⃣ Audio (MP3)\n2️⃣ Vidéo (MP4)\n3️⃣ Document (Fichier)\n\nRépondez simplement par *1*, *2* ou *3*\n\n Powered by ©Mr Marco`;
         try {
             await sock.sendMessage(jid, { image: { url: video.thumbnail }, caption }, { quoted: msg });
         } catch {

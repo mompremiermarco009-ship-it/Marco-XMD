@@ -5,69 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>MARCO-XMD | Accueil</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #00ffcc;
-            --primary-hover: #00ccaa;
-            --bg-dark: #0a0a0a;
-            --text-primary: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --border-color: rgba(0, 255, 204, 0.2);
-            --card-bg: rgba(15, 15, 15, 0.8);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --neon: #00d4ff;
+            --neon-dim: #0077b6;
+            --bg: #0d0d0d;
+            --text: #e0e0e0;
+            --text-dim: #9a9a9a;
+            --border: rgba(0, 212, 255, 0.2);
+            --card-bg: rgba(20, 20, 30, 0.9);
+            --metal-dark: #1c1c1c;
+            --danger: #ff4757;
+            --success: #2ed573;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-            padding-bottom: 70px;
+            padding-bottom: 80px;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(0,212,255,0.03) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(0,212,255,0.05) 0%, transparent 40%),
+                linear-gradient(45deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%),
+                linear-gradient(-45deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%);
+            background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
         }
-        canvas#matrix { position: fixed; top: 0; left: 0; z-index: -1; opacity: 0.15; }
-        .main-container {
-            flex: 1;
-            padding: 40px 20px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
+        .main-container { max-width: 900px; margin: 0 auto; padding: 20px 20px 30px; }
+
+        /* Bannière pub */
+        .ad-banner {
             width: 100%;
+            max-width: 600px;
+            margin: 0 auto 30px auto;
+            border: 1px solid var(--neon);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--metal-dark);
+            position: relative;
+            clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0% 100%);
+            box-shadow: 0 0 20px rgba(0,212,255,0.2);
         }
-        .header { text-align: left; margin-bottom: 30px; }
+        .ad-banner:hover {
+            border-color: var(--neon-dim);
+            box-shadow: 0 0 30px var(--neon-dim), 0 10px 25px rgba(0,0,0,0.7);
+            transform: scale(1.02);
+        }
+        .ad-banner video, .ad-banner img {
+            width: 100%;
+            max-height: 140px;
+            object-fit: cover;
+            display: block;
+        }
+        .ad-banner .ad-label {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: rgba(0,0,0,0.8);
+            color: var(--neon);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+        }
+
+        .header { text-align: center; margin-bottom: 30px; }
         .header h1 {
-            font-size: clamp(2rem, 5vw, 3.5rem);
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            color: var(--primary);
-            text-shadow: 0 0 15px rgba(0,255,204,0.4);
-            margin-bottom: 0.5rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            color: var(--neon);
+            text-shadow: 0 0 20px var(--neon);
         }
-        .header p { color: var(--text-secondary); font-size: 1rem; }
-
+        .header p { font-family: 'Share Tech Mono', monospace; color: #aaa; }
         .section-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon);
+            margin: 30px 0 15px;
             font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin: 40px 0 20px;
+            text-shadow: 0 0 10px var(--neon-dim);
         }
-        .section-title:first-of-type { margin-top: 0; }
-
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 20px;
             max-width: 700px;
         }
-        @media (max-width: 480px) {
-            .card-grid { grid-template-columns: 1fr; max-width: 300px; margin-left: 0; }
-        }
         .card {
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
+            border: 1px solid var(--border);
+            clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
             aspect-ratio: 1 / 1;
             display: flex;
             flex-direction: column;
@@ -75,531 +107,261 @@
             justify-content: center;
             gap: 10px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            box-shadow: var(--shadow);
+            transition: 0.3s;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
         }
-        .card i { font-size: 2.2rem; color: var(--primary); }
-        .card span { font-weight: 600; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 15px 35px rgba(0,255,204,0.2); background: rgba(0,255,204,0.08); }
-        .card:active { transform: scale(0.97); }
-
+        .card:hover {
+            transform: translateY(-6px);
+            border-color: var(--neon);
+            box-shadow: 0 0 20px var(--neon-dim);
+        }
+        .card i { font-size: 2rem; color: var(--neon); }
+        .card span { font-family: 'Share Tech Mono', monospace; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
         .hidden { display: none !important; }
-
-        /* Vue pairing */
-        #pairingView {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 25px;
-            backdrop-filter: blur(15px);
-            max-width: 500px;
-            margin-top: 20px;
-            box-shadow: var(--shadow);
-            text-align: center;
+        .btn {
+            background: linear-gradient(135deg, #003d66, #0077b6);
+            border: 1px solid var(--neon);
+            color: #fff;
+            padding: 12px 24px;
+            font-family: 'Share Tech Mono', monospace;
+            text-transform: uppercase;
+            cursor: pointer;
+            clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+            transition: 0.3s;
         }
+        .btn:hover { box-shadow: 0 0 15px var(--neon); }
         .back-btn {
             background: transparent;
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 8px 16px;
-            border-radius: 30px;
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            padding: 8px 20px;
             cursor: pointer;
-            font-size: 0.9rem;
-            margin-bottom: 20px;
-            transition: 0.2s;
-            display: inline-block;
-        }
-        .back-btn:hover { background: var(--primary); color: #000; }
-
-        .pairing-choice {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin: 20px 0;
-        }
-        .pairing-choice button {
-            flex: 1 1 180px;
-            padding: 25px 15px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            border: 2px solid var(--primary);
-            border-radius: 16px;
-            background: rgba(0,255,204,0.05);
-            color: var(--primary);
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-        .pairing-choice button i { font-size: 2rem; }
-        .pairing-choice button:hover { background: var(--primary); color: #000; }
-
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.8rem;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+            font-family: 'Share Tech Mono', monospace;
             text-transform: uppercase;
-            color: var(--primary);
-            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+            transition: 0.3s;
         }
-        .input-group input,
-        .input-group textarea {
+        .back-btn:hover { background: var(--neon); color: #000; }
+        .input-group input {
             width: 100%;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 12px 15px;
-            font-size: 1rem;
-            color: #fff;
-            outline: none;
-            transition: 0.2s;
-            resize: vertical;
-            font-family: inherit;
-        }
-        .input-group input:focus,
-        .input-group textarea:focus { border-color: var(--primary); }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #000;
-            border: none;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
             padding: 12px;
-            width: 100%;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 1rem;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 10px;
-        }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-primary:disabled { background: #333; color: #666; cursor: not-allowed; }
-
-        #codeDisplay {
-            font-size: 2.5rem;
-            font-weight: 800;
-            letter-spacing: 6px;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(0,255,204,0.1);
-            border: 2px dashed var(--primary);
-            border-radius: 15px;
             color: #fff;
-            text-shadow: 0 0 10px var(--primary);
+            clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+            outline: none;
+            font-family: 'Rajdhani', sans-serif;
         }
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(0,255,204,.3);
-            border-radius: 50%;
-            border-top-color: var(--primary);
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Avis */
-        .avis-section { margin-top: 50px; max-width: 600px; }
-        .avis-section h2 { font-size: 1.8rem; font-weight: 700; color: var(--primary); margin-bottom: 20px; }
-        .avis-list {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+        #codeDisplay {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            color: var(--neon);
+            text-shadow: 0 0 15px var(--neon);
+            text-align: center;
             padding: 20px;
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
+            border: 2px dashed var(--neon);
+            clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
         }
-        .avis-item { border-bottom: 1px solid var(--border-color); padding: 12px 0; }
-        .avis-item:last-child { border-bottom: none; }
-        .avis-item strong { color: var(--primary); }
-        .avis-item p { color: var(--text-secondary); margin: 5px 0 0; }
-        .avis-item small { color: #666; font-size: 0.8rem; }
-
-        .vote-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 8px;
-        }
-        .vote-btn {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 5px 12px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .vote-btn i { font-size: 1rem; }
-        .vote-btn.active {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: rgba(0,255,204,0.1);
-        }
-        .vote-btn:hover { border-color: var(--primary); }
-        .count { font-weight: bold; }
-
-        /* Modales */
         .modal {
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 1000;
+            background: rgba(0,0,0,0.9);
             justify-content: center; align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
         }
         .modal.active { display: flex; }
         .modal-content {
-            background: #111; border: 1px solid var(--primary);
-            border-radius: 24px; padding: 20px;
-            width: 95%; max-width: 500px; position: relative;
-            max-height: 90vh; overflow-y: auto; text-align: center;
+            background: var(--metal-dark);
+            border: 2px solid var(--neon);
+            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+            padding: 25px;
+            width: 95%;
+            max-width: 500px;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+            text-align: center;
         }
         .close-btn {
-            position: absolute; top: 10px; right: 15px;
-            font-size: 1.8rem; color: var(--primary); cursor: pointer;
-            background: none; border: none;
-        }
-        #qrContainer img {
-            max-width: 100%;
-            height: auto;
-            border: 4px solid #25D366;
-            border-radius: 10px;
+            position: absolute;
+            top: 10px; right: 15px;
+            font-size: 2rem;
+            color: var(--neon);
+            cursor: pointer;
+            background: none;
+            border: none;
         }
         .footer {
-            position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
-            padding: 15px; background: rgba(10,10,10,0.95);
-            border-top: 1px solid var(--border-color); color: #666; font-size: 0.8rem; z-index: 10;
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            text-align: center; padding: 10px;
+            background: rgba(0,0,0,0.9);
+            border-top: 1px solid var(--neon);
+            color: #666;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
         }
     </style>
 </head>
 <body>
-<canvas id="matrix"></canvas>
-
 <div class="main-container">
+    <!-- Bannière publicitaire -->
+    <a href="https://influrence.onrender.com" target="_blank" class="ad-banner" title="Visiter influrence.onrender.com">
+        <video autoplay muted loop playsinline poster="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='140'><rect fill='%23111' width='600' height='140'/><text fill='%23fff' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Orbitron' font-size='20'>INFLURENCE</text></svg>">
+            <source src="media/pub.mp4" type="video/mp4">
+            <img src="media/pub.jpg" alt="Influrence" style="width:100%;max-height:140px;object-fit:cover;">
+        </video>
+        <span class="ad-label">SPONSORISÉ</span>
+    </a>
+
     <div class="header">
         <h1>MARCO-XMD</h1>
-        <p>Interface de gestion du bot</p>
+        <p>/ accueil / interface publique</p>
     </div>
 
-    <h2 class="section-title">🔐 Général</h2>
+    <h2 class="section-title">/ actions /</h2>
     <div class="card-grid" id="mainMenu">
-        <div class="card" id="btnPairing" onclick="showPairingView()">
-            <i class="fas fa-key"></i><span>Pairing</span>
-        </div>
-        <div class="card" onclick="window.open('https://wa.me/50941131299?text=Salut%20Marco!', '_blank')">
-            <i class="fas fa-user-circle"></i><span>Contact</span>
-        </div>
-        <div class="card" onclick="window.open('https://whatsapp.com/channel/0029VbASWFzHFxP6cbTkkz08', '_blank')">
-            <i class="fas fa-bullhorn"></i><span>Chaîne</span>
-        </div>
-        <div class="card" onclick="document.getElementById('gamesSection').scrollIntoView({behavior:'smooth'});">
-            <i class="fas fa-gamepad"></i><span>Jeux</span>
-        </div>
-        <div class="card" onclick="openAvisModal()">
-            <i class="fas fa-comment-dots"></i><span>Avis</span>
-        </div>
+        <div class="card" id="btnPairing"><i class="fas fa-key"></i><span>Pairing</span></div>
+        <div class="card" onclick="window.open('https://wa.me/50941131299?text=Salut%20Marco!', '_blank')"><i class="fas fa-user-astronaut"></i><span>Contact</span></div>
+        <div class="card" onclick="window.open('https://whatsapp.com/channel/0029VbASWFzHFxP6cbTkkz08', '_blank')"><i class="fas fa-satellite-dish"></i><span>Chaîne</span></div>
+        <div class="card" onclick="window.location.href='/games.html'"><i class="fas fa-gamepad"></i><span>Jeux</span></div>
+        <div class="card" onclick="openAdmin()"><i class="fas fa-user-shield"></i><span>Admin</span></div>
     </div>
 
-    <!-- Vue pairing -->
+    <!-- Pairing View -->
     <div id="pairingView" class="hidden">
         <button class="back-btn" id="btnBack"><i class="fas fa-arrow-left"></i> Retour</button>
         <div id="pairingChoice">
             <p style="margin-bottom:20px;">Choisissez votre méthode de connexion :</p>
-            <div class="pairing-choice">
-                <button onclick="startPairing('pair')"><i class="fas fa-key"></i> Code d'appariement</button>
-                <button onclick="startPairing('qr')"><i class="fas fa-qrcode"></i> QR Code</button>
+            <div style="display:flex; gap:20px; justify-content:center; flex-wrap:wrap;">
+                <button class="btn" onclick="startPairing('pair')"><i class="fas fa-key"></i> Code</button>
+                <button class="btn" onclick="startPairing('qr')"><i class="fas fa-qrcode"></i> QR</button>
             </div>
         </div>
         <div id="pairingForm" class="hidden">
-            <div class="input-group">
-                <label for="phone">Numéro de téléphone</label>
-                <input type="text" id="phone" placeholder="Ex: 50941131299">
-            </div>
-            <button class="btn-primary" id="actionBtn">Générer le code</button>
+            <div class="input-group"><input type="text" id="phone" placeholder="509xxxxxxxx"></div>
+            <button class="btn" id="actionBtn" style="width:100%;">Générer</button>
         </div>
         <div id="resultArea" class="hidden">
             <div id="codeDisplay"></div>
-            <p style="font-size:0.85rem;color:var(--text-secondary);">Entrez ce code dans WhatsApp > Appareils connectés</p>
-            <button class="btn-primary" id="copyBtn">Copier le code</button>
-            <button class="back-btn" style="width:100%;margin-top:10px;" id="retryBtn">Recommencer</button>
+            <p style="margin:10px 0;">WhatsApp > Appareils connectés</p>
+            <button class="btn" id="copyBtn">Copier</button>
+            <button class="back-btn" style="width:100%; margin-top:10px;" id="retryBtn">Recommencer</button>
         </div>
     </div>
 
-    <h2 class="section-title" id="gamesSection">🕹️ Mini‑Jeux</h2>
-    <div class="card-grid">
-        <div class="card" onclick="openGame('snake')"><i class="fas fa-snake"></i><span>Snake</span></div>
-        <div class="card" onclick="openGame('tictactoe')"><i class="fas fa-times-circle"></i><span>Morpion</span></div>
-        <div class="card" onclick="openGame('memory')"><i class="fas fa-brain"></i><span>Memory</span></div>
-        <div class="card" onclick="openGame('runner')"><i class="fas fa-running"></i><span>Runner</span></div>
-        <div class="card" onclick="openGame('calcgame')"><i class="fas fa-brain"></i><span>Calcul mental</span></div>
-    </div>
-
-    <h2 class="section-title">🔍 Outils</h2>
-    <div class="card-grid">
-        <div class="card" onclick="openGame('search')"><i class="fas fa-search"></i><span>Recherche</span></div>
-        <div class="card" onclick="openGame('calc')"><i class="fas fa-calculator"></i><span>Calculatrice</span></div>
-    </div>
-
-    <h2 class="section-title">🔐 Advance</h2>
-    <div class="card-grid">
-        <div class="card" onclick="openAdvanced()">
-            <i class="fas fa-cogs"></i><span>Autres</span>
-        </div>
-    </div>
-    <div class="avis-section" id="avisSection">
-        <h2>💬 Avis des utilisateurs</h2>
-        <div id="avisList" class="avis-list"><p style="color:var(--text-secondary);">Chargement des avis...</p></div>
-        <button class="btn-primary" style="max-width:200px; margin-top:15px;" onclick="openAvisModal()">✍️ Donner mon avis</button>
-    </div>
+    <!-- Avis -->
+    <h2 class="section-title">/ avis /</h2>
+    <div id="avisList" style="max-height:300px; overflow-y:auto; margin-bottom:10px;"><p>Chargement...</p></div>
+    <button class="btn" onclick="openAvisModal()">Donner mon avis</button>
 </div>
 
-<!-- Modale QR Code -->
-<div id="qrModal" class="modal">
-    <div class="modal-content" style="padding: 15px;">
-        <span class="close-btn" onclick="closeQRModal()">&times;</span>
-        <h3 style="color: var(--primary);">QR Code</h3>
-        <div id="qrContainer" style="margin: 20px 0;">
-            <p style="color:var(--text-secondary);">Chargement du QR code...</p>
-        </div>
-        <p style="color:var(--text-secondary); margin-top: 10px;">Scannez ce code avec WhatsApp</p>
-        <button class="btn-primary" onclick="closeQRModal()">Fermer</button>
-    </div>
-</div>
-
-<!-- Modale jeu -->
-<div id="gameModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeGame()">&times;</span>
-        <h3 id="gameTitle" style="color: var(--primary); margin-bottom: 1rem;"></h3>
-        <div id="gameContainer"></div>
-        <div id="gameControls"></div>
-    </div>
-</div>
-
-<!-- Modale Avis -->
+<!-- Modales -->
 <div id="avisModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeAvisModal()">&times;</span>
-        <h3 style="color: var(--primary);">Votre avis</h3>
-        <div class="input-group"><label for="avisName">Votre nom</label><input type="text" id="avisName" placeholder="Votre pseudo"></div>
-        <div class="input-group"><label for="avisMessage">Message</label><textarea id="avisMessage" rows="4" placeholder="Partagez votre expérience..."></textarea></div>
-        <button class="btn-primary" onclick="submitAvis()">Envoyer</button>
+        <h3 style="color:var(--neon);">Votre avis</h3>
+        <div class="input-group"><input id="avisName" placeholder="Votre nom"></div>
+        <div class="input-group"><textarea id="avisMessage" rows="3" placeholder="Message" style="width:100%; background:rgba(0,0,0,0.5); border:1px solid var(--border); color:#fff; padding:10px;"></textarea></div>
+        <button class="btn" onclick="submitAvis()">Envoyer</button>
         <p id="avisFeedback" style="margin-top:10px;"></p>
     </div>
 </div>
 
-<div class="footer">© 2024 MARCO-XMD Bot — Tous droits réservés</div>
+<div class="footer">© 2026 MARCO-XMD Bot — Tous droits réservés</div>
 
-<script src="script/qr.js"></script>
 <script>
-// Matrix
-const canvas = document.getElementById('matrix');
-const ctx = canvas.getContext('2d');
-function resize() { canvas.height = window.innerHeight; canvas.width = window.innerWidth; }
-window.addEventListener('resize', resize); resize();
-const letters = "MARCOXMD0123456789";
-const fontSize = 14;
-let columns = Math.floor(canvas.width / fontSize);
-let drops = Array(columns).fill(1);
-function draw() {
-    ctx.fillStyle = "rgba(10, 10, 10, 0.05)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#00ffcc15";
-    ctx.font = fontSize + "px monospace";
-    drops.forEach((y, i) => {
-        const text = letters[Math.floor(Math.random() * letters.length)];
-        ctx.fillText(text, i * fontSize, y * fontSize);
-        if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-        drops[i]++;
-    });
-}
-setInterval(draw, 50);
-
-// Jeux
-const gameModal = document.getElementById('gameModal');
-const gameTitle = document.getElementById('gameTitle');
-const gameContainer = document.getElementById('gameContainer');
-const gameControls = document.getElementById('gameControls');
-let currentGameObj = null;
-async function openGame(game) {
-    if (currentGameObj) { currentGameObj.stop(); currentGameObj = null; }
-    gameContainer.innerHTML = ''; gameControls.innerHTML = '';
-    gameModal.classList.add('active');
-    try {
-        switch(game) {
-            case 'snake': gameTitle.textContent='🐍 Snake'; currentGameObj = (await import('./script/snake.js')).default(gameContainer, gameControls); break;
-            case 'tictactoe': gameTitle.textContent='❌⭕ Morpion'; currentGameObj = (await import('./script/tictactoe.js')).default(gameContainer, gameControls); break;
-            case 'calc': gameTitle.textContent='🔢 Calculatrice'; currentGameObj = (await import('./script/calc.js')).default(gameContainer, gameControls); break;
-            case 'memory': gameTitle.textContent='🧠 Memory'; currentGameObj = (await import('./script/memory.js')).default(gameContainer, gameControls); break;
-            case 'runner': gameTitle.textContent='🏃 Runner'; currentGameObj = (await import('./script/runner.js')).default(gameContainer, gameControls); break;
-            case 'calcgame': gameTitle.textContent='🧮 Calcul mental'; currentGameObj = (await import('./script/calcgame.js')).default(gameContainer, gameControls); break;
-            case 'search': gameTitle.textContent='🔍 Recherche'; currentGameObj = (await import('./script/search.js')).default(gameContainer, gameControls); break;
-        }
-    } catch (err) { gameContainer.innerHTML = '<p style="color:red;">Erreur.</p>'; console.error(err); }
-}
-function closeGame() { if (currentGameObj) { currentGameObj.stop(); currentGameObj = null; } gameModal.classList.remove('active'); gameContainer.innerHTML = ''; gameControls.innerHTML = ''; }
-
-// Avis avec likes/dislikes
-const voterId = localStorage.getItem('voterId') || (() => {
-    const id = 'voter_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('voterId', id);
-    return id;
-})();
-
-async function loadAvis() {
-    try {
-        const res = await fetch('/api/avis'); const avis = await res.json();
-        const list = document.getElementById('avisList');
-        if (!Array.isArray(avis) || avis.length === 0) {
-            list.innerHTML = '<p style="color:var(--text-secondary);">Aucun avis.</p>';
-            return;
-        }
-        list.innerHTML = avis.map(a => {
-            const liked = a.voters && a.voters[voterId] === 'like';
-            const disliked = a.voters && a.voters[voterId] === 'dislike';
-            return `
-            <div class="avis-item" data-id="${a.id}">
-                <strong>${escapeHtml(a.name)}</strong>
-                <small>${new Date(a.date).toLocaleString('fr-FR')}</small>
-                <p>${escapeHtml(a.message)}</p>
-                <div class="vote-buttons">
-                    <button class="vote-btn like-btn ${liked ? 'active' : ''}" data-type="like">
-                        <i class="fas fa-thumbs-up"></i> <span class="count">${a.likes || 0}</span>
-                    </button>
-                    <button class="vote-btn dislike-btn ${disliked ? 'active' : ''}" data-type="dislike">
-                        <i class="fas fa-thumbs-down"></i> <span class="count">${a.dislikes || 0}</span>
-                    </button>
-                </div>
-            </div>`;
-        }).join('');
-
-        document.querySelectorAll('.vote-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const avisItem = this.closest('.avis-item');
-                const id = avisItem.dataset.id;
-                const type = this.dataset.type;
-                const res = await fetch('/api/avis/vote', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, type, voterId })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    loadAvis();
-                } else {
-                    alert(data.error || 'Erreur lors du vote');
-                }
-            });
-        });
-    } catch { document.getElementById('avisList').innerHTML = '<p style="color:red;">Impossible de charger.</p>'; }
-}
-function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-
-function openAvisModal() {
-    document.getElementById('avisModal').classList.add('active');
-    document.getElementById('avisName').value='';
-    document.getElementById('avisMessage').value='';
-    document.getElementById('avisFeedback').textContent='';
-}
-function closeAvisModal() { document.getElementById('avisModal').classList.remove('active'); }
-
-async function submitAvis() {
-    const name = document.getElementById('avisName').value.trim();
-    const msg = document.getElementById('avisMessage').value.trim();
-    const fb = document.getElementById('avisFeedback');
-    if (!name || !msg) { fb.textContent='Champs requis.'; fb.style.color='red'; return; }
-    try {
-        const res = await fetch('/api/avis', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, message:msg}) });
-        const d = await res.json();
-        if (d.success) { fb.textContent='✅ Envoyé !'; fb.style.color='var(--primary)'; setTimeout(()=>{ closeAvisModal(); loadAvis(); }, 1200); }
-        else throw new Error(d.error);
-    } catch (e) { fb.textContent='❌ Erreur.'; fb.style.color='red'; }
-}
-document.addEventListener('DOMContentLoaded', loadAvis);
-
-function openAdvanced() {
-    const password = prompt("Mot de passe :");
-    if (password === "marco2024") {
-        window.location.href = "/advance.html";
-    } else {
-        alert("Mot de passe incorrect.");
-    }
-}
-// ========== GESTION PAIRING ==========
-const pairingView = document.getElementById('pairingView');
-const pairingChoice = document.getElementById('pairingChoice');
-const pairingForm = document.getElementById('pairingForm');
-const resultArea = document.getElementById('resultArea');
-const codeDisplay = document.getElementById('codeDisplay');
-const actionBtn = document.getElementById('actionBtn');
-const phoneInput = document.getElementById('phone');
+// Pairing
 let currentMode = 'pair';
-
-function showPairingView() {
-    document.getElementById('mainMenu').style.display = 'none';
-    pairingView.classList.remove('hidden');
-    pairingChoice.classList.remove('hidden');
-    pairingForm.classList.add('hidden');
-    resultArea.classList.add('hidden');
-}
+document.getElementById('btnPairing').addEventListener('click', ()=>{
+    document.getElementById('mainMenu').style.display='none';
+    document.getElementById('pairingView').classList.remove('hidden');
+    document.getElementById('pairingChoice').classList.remove('hidden');
+    document.getElementById('pairingForm').classList.add('hidden');
+    document.getElementById('resultArea').classList.add('hidden');
+});
+document.getElementById('btnBack').addEventListener('click', ()=>{
+    document.getElementById('pairingView').classList.add('hidden');
+    document.getElementById('mainMenu').style.display='';
+});
 function startPairing(mode) {
     currentMode = mode;
-    pairingChoice.classList.add('hidden');
-    pairingForm.classList.remove('hidden');
-    phoneInput.value = '';
-    actionBtn.textContent = mode === 'pair' ? 'Générer le code' : 'Afficher le QR Code';
-    actionBtn.onclick = mode === 'pair' ? generatePairingCode : showQRCode;
-    actionBtn.disabled = false;
+    document.getElementById('pairingChoice').classList.add('hidden');
+    document.getElementById('pairingForm').classList.remove('hidden');
+    document.getElementById('actionBtn').textContent = mode==='pair'?'Générer le code':'Afficher le QR Code';
+    document.getElementById('actionBtn').onclick = mode==='pair'? generatePairingCode : showQRCode;
 }
-document.getElementById('btnBack').addEventListener('click', () => {
-    pairingView.classList.add('hidden');
-    document.getElementById('mainMenu').style.display = '';
-});
-
 async function generatePairingCode() {
-    let num = phoneInput.value.trim().replace(/[^0-9]/g, '');
-    if (num.length < 10) return alert('Numéro invalide (min 10 chiffres).');
-    actionBtn.disabled = true;
-    actionBtn.innerHTML = '<span class="loading-spinner"></span> Génération...';
+    let num = document.getElementById('phone').value.replace(/[^0-9]/g,'');
+    if (num.length<10) return alert('Numéro invalide');
+    document.getElementById('actionBtn').disabled = true;
     try {
-        const res = await fetch(`/pair?number=${encodeURIComponent(num)}`);
+        const res = await fetch(`/pair?number=${num}`);
         const data = await res.json();
         if (res.ok) {
-            codeDisplay.textContent = data.code;
-            pairingForm.classList.add('hidden');
-            resultArea.classList.remove('hidden');
-        } else alert(data.error || 'Erreur');
-    } catch { alert('Erreur réseau.'); }
-    finally { actionBtn.disabled = false; actionBtn.innerHTML = currentMode==='pair'?'Générer le code':'Afficher le QR Code'; }
+            document.getElementById('codeDisplay').textContent = data.code;
+            document.getElementById('pairingForm').classList.add('hidden');
+            document.getElementById('resultArea').classList.remove('hidden');
+        } else alert(data.error);
+    } catch(e) { alert('Erreur réseau'); }
+    finally { document.getElementById('actionBtn').disabled = false; }
 }
-// QR Code géré dans script/qr.js
+async function showQRCode() {
+    let num = document.getElementById('phone').value.replace(/[^0-9]/g,'');
+    if (num.length<10) return alert('Numéro invalide');
+    window.open(`/qr?number=${num}`, '_blank');
+}
+document.getElementById('retryBtn').addEventListener('click', ()=>{
+    document.getElementById('resultArea').classList.add('hidden');
+    document.getElementById('pairingForm').classList.remove('hidden');
+});
+document.getElementById('copyBtn').addEventListener('click', ()=>{
+    navigator.clipboard.writeText(document.getElementById('codeDisplay').textContent);
+    alert('Copié !');
+});
 
-document.getElementById('retryBtn').addEventListener('click', () => {
-    resultArea.classList.add('hidden');
-    pairingForm.classList.remove('hidden');
-    phoneInput.value = '';
-});
-document.getElementById('copyBtn').addEventListener('click', () => {
-    const code = codeDisplay.textContent.trim();
-    if (!code) return;
-    navigator.clipboard.writeText(code).then(() => {
-        const btn = document.getElementById('copyBtn');
-        btn.textContent = 'Copié !';
-        setTimeout(() => btn.textContent = 'Copier le code', 2000);
-    });
-});
+// Avis
+const voterId = localStorage.getItem('voterId') || (()=>{ const id='voter_'+Date.now().toString(36)+Math.random().toString(36).substr(2,9); localStorage.setItem('voterId',id); return id; })();
+async function loadAvis() {
+    try {
+        const res = await fetch('/api/avis');
+        const avis = await res.json();
+        const list = document.getElementById('avisList');
+        if (!Array.isArray(avis) || avis.length===0) { list.innerHTML='<p>Aucun avis.</p>'; return; }
+        list.innerHTML = avis.map(a=>{
+            const liked = a.voters && a.voters[voterId]==='like';
+            const disliked = a.voters && a.voters[voterId]==='dislike';
+            return `<div style="border-bottom:1px solid var(--border); padding:8px 0;">
+                <strong style="color:var(--neon)">${escapeHtml(a.name)}</strong> <small>${new Date(a.date).toLocaleString('fr-FR')}</small>
+                <p>${escapeHtml(a.message)}</p>
+                <button class="vote-btn ${liked?'active':''}" data-id="${a.id}" data-type="like">👍 ${a.likes||0}</button>
+                <button class="vote-btn ${disliked?'active':''}" data-id="${a.id}" data-type="dislike">👎 ${a.dislikes||0}</button>
+            </div>`;
+        }).join('');
+        document.querySelectorAll('.vote-btn').forEach(b=>b.addEventListener('click', async function(){
+            const id=this.dataset.id, type=this.dataset.type;
+            await fetch('/api/avis/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,type,voterId})});
+            loadAvis();
+        }));
+    } catch(e) { document.getElementById('avisList').innerHTML='<p>Erreur chargement.</p>'; }
+}
+function openAvisModal(){ document.getElementById('avisModal').classList.add('active'); }
+function closeAvisModal(){ document.getElementById('avisModal').classList.remove('active'); }
+async function submitAvis(){
+    const name=document.getElementById('avisName').value.trim(), msg=document.getElementById('avisMessage').value.trim();
+    const fb=document.getElementById('avisFeedback');
+    if(!name||!msg){ fb.textContent='Champs requis.'; return; }
+    try {
+        const res=await fetch('/api/avis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,message:msg})});
+        const d=await res.json();
+        if(d.success){ fb.textContent='✅ Envoyé !'; setTimeout(()=>{ closeAvisModal(); loadAvis(); },1000); }
+        else throw new Error(d.error);
+    } catch(e){ fb.textContent='❌ Erreur.'; }
+}
+function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function openAdmin(){ const pwd=prompt("Code d'accès :"); if(pwd==="marco2026") window.location.href="/admin.html"; else alert("Code incorrect."); }
+loadAvis();
 </script>
 </body>
 </html>

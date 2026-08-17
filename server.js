@@ -8,102 +8,9 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(express.json({ limit: "5kb" }));
-// Servir les fichiers statiques depuis le dossier public
 app.use(express.static(path.join(__dirname, "public")));
 
-// Dashboard admin MARCO-XMD (public/admin.html) — API en lecture/écriture
-// sur les sessions, sudo, bannis, commandes, logs et paramètres.
 app.use("/api/admin", require("./admin-routes.js"));
-
-// Rate limiter (avis)
-const avisRequestCounts = new Map();
-function rateLimiter(maxRequests, windowMs) {
-    return (req, res, next) => {
-        const ip = req.ip;
-        const now = Date.now();
-        const record = avisRequestCounts.get(ip) || [];
-        const recent = record.filter(time => now - time < windowMs);
-        recent.push(now);
-        avisRequestCounts.set(ip, recent);
-        if (recent.length > maxRequests) return res.status(429).json({ error: "Trop de requêtes." });
-        next();
-    };
-}
-
-// Avis (inchangé)
-const avisFilePath = path.join(__dirname, "data", "avis.json");
-async function loadAvisFromFile() {
-    try { const data = await fs.readFile(avisFilePath, "utf-8"); return JSON.parse(data); }
-    catch { return []; }
-}
-async function saveAvisToFile(avis) {
-    await fs.mkdir(path.dirname(avisFilePath), { recursive: true });
-    await fs.writeFile(avisFilePath, JSON.stringify(avis, null, 2));
-}
-async function migrateAvis() {
-    let avis = await loadAvisFromFile();
-    let changed = false;
-    avis = avis.map(a => {
-        const newAvis = { ...a };
-        if (!newAvis.id) {
-            newAvis.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-            changed = true;
-        }
-        if (newAvis.likes === undefined) { newAvis.likes = 0; changed = true; }
-        if (newAvis.dislikes === undefined) { newAvis.dislikes = 0; changed = true; }
-        if (!newAvis.voters) { newAvis.voters = {}; changed = true; }
-        return newAvis;
-    });
-    if (changed) await saveAvisToFile(avis);
-    return avis;
-}
-migrateAvis().then(() => console.log("✅ Migration des avis terminée"));
-
-app.get("/api/avis", async (req, res) => res.json(await loadAvisFromFile()));
-app.post("/api/avis", rateLimiter(5, 60000), async (req, res) => {
-    const { name, message } = req.body;
-    if (!name || !message) return res.status(400).json({ success: false, error: "Nom et message requis." });
-    if (name.length > 50 || message.length > 500) return res.status(400).json({ error: "Trop long." });
-    const avis = await loadAvisFromFile();
-    const newAvis = {
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-        name,
-        message,
-        date: new Date().toISOString(),
-        likes: 0,
-        dislikes: 0,
-        voters: {}
-    };
-    avis.push(newAvis);
-    if (avis.length > 50) avis.shift();
-    await saveAvisToFile(avis);
-    res.json({ success: true, avis: newAvis });
-});
-app.post("/api/avis/vote", rateLimiter(10, 60000), async (req, res) => {
-    const { id, type, voterId } = req.body;
-    if (!id || !type || !voterId) return res.status(400).json({ error: "Paramètres manquants." });
-    if (type !== "like" && type !== "dislike") return res.status(400).json({ error: "Type invalide." });
-    const avis = await loadAvisFromFile();
-    const avisItem = avis.find(a => a.id === id);
-    if (!avisItem) return res.status(404).json({ error: "Avis introuvable." });
-    if (!avisItem.voters) avisItem.voters = {};
-    const previousVote = avisItem.voters[voterId];
-    if (previousVote === type) {
-        delete avisItem.voters[voterId];
-        if (type === "like") avisItem.likes = Math.max(0, (avisItem.likes || 0) - 1);
-        else avisItem.dislikes = Math.max(0, (avisItem.dislikes || 0) - 1);
-    } else {
-        if (previousVote) {
-            if (previousVote === "like") avisItem.likes = Math.max(0, (avisItem.likes || 0) - 1);
-            else avisItem.dislikes = Math.max(0, (avisItem.dislikes || 0) - 1);
-        }
-        avisItem.voters[voterId] = type;
-        if (type === "like") avisItem.likes = (avisItem.likes || 0) + 1;
-        else avisItem.dislikes = (avisItem.dislikes || 0) + 1;
-    }
-    await saveAvisToFile(avis);
-    res.json({ success: true, likes: avisItem.likes, dislikes: avisItem.dislikes });
-});
 
 // Recherche
 app.get("/api/search", async (req, res) => {
@@ -139,42 +46,36 @@ app.get("/api/search", async (req, res) => {
 });
 
 const startServer = (startBotFunc, sessionsMap) => {
-    // Route principale : sert index.html depuis public/
     app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-    // Pairing code
+    // Pairing code (utilise forcePairing et écoute l'événement pairing-code)
     app.get("/pair", async (req, res) => {
         let num = req.query.number;
         if (!num) return res.status(400).json({ error: "Numéro requis (?number=509...)" });
         num = num.replace(/[^0-9]/g, "");
         if (num.length < 10) return res.status(400).json({ error: "Numéro invalide." });
-        let marcoInstance;
+
+        let sock;
         try {
-            marcoInstance = sessionsMap.get(num);
-            if (!marcoInstance) marcoInstance = await startBotFunc(num);
-            await marcoInstance._pairingReadyPromise;
-            await new Promise(r => setTimeout(r, 3000));
-            let code;
-            for (let attempt = 0; attempt < 2; attempt++) {
-                try {
-                    code = await marcoInstance.requestPairingCode(num, "MARCOXMD");
-                    break;
-                } catch (err) {
-                    if (attempt === 1) throw err;
-                    await new Promise(r => setTimeout(r, 2000));
-                }
+            if (sessionsMap.has(num) && sessionsMap.get(num).isReady) {
+                return res.status(400).json({ error: "Cette session est déjà active." });
             }
-            res.status(200).json({ code });
+            sock = await startBotFunc(num, { forcePairing: true });
+            const code = await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error("Timeout génération code")), 60000);
+                sock.ev.on('pairing-code', (c) => {
+                    clearTimeout(timeout);
+                    resolve(c);
+                });
+            });
+            res.json({ code });
         } catch (err) {
             console.error(`❌ Erreur Pairing pour ${num}:`, err);
-            let message = "Erreur lors de la génération du code.";
-            if (err.output?.statusCode === 428) message = "Connexion refusée (428). Utilisez le QR code.";
-            else if (err.message?.includes("Timed Out")) message = "La connexion WhatsApp a pris trop de temps.";
-            if (marcoInstance) {
-                try { marcoInstance.end(); marcoInstance.ev.removeAllListeners(); } catch {}
+            if (sock) {
+                try { sock.end(); sock.ev.removeAllListeners(); } catch {}
                 sessionsMap.delete(num);
             }
-            res.status(500).json({ error: message });
+            res.status(500).json({ error: err.message || "Erreur pairing" });
         }
     });
 

@@ -13,6 +13,13 @@ const { startServer } = require("./server.js");
 
 const sessions = new Map();
 global.sessionsMap = sessions;
+global.botLogs = new Map();
+global.addLog = (sessionID, action, description, severity = 'info') => {
+    if (!global.botLogs.has(sessionID)) global.botLogs.set(sessionID, []);
+    const arr = global.botLogs.get(sessionID);
+    arr.unshift({ timestamp: Date.now(), action, description, severity });
+    if (arr.length > 200) arr.length = 200;
+};
 
 function ensureSessionDir(sessionID) {
     const sessionDir = path.join(__dirname, 'sessions', sessionID);
@@ -44,16 +51,8 @@ function loadPlugins(sessionDir) {
 
 async function startBot(phoneNumber = null, options = {}) {
     if (!phoneNumber) {
-        const sessionsDir = path.join(__dirname, 'sessions');
-        if (fs.existsSync(sessionsDir)) {
-            const existing = fs.readdirSync(sessionsDir);
-            for (const name of existing) {
-                if (fs.statSync(path.join(sessionsDir, name)).isDirectory()) {
-                    console.log(`🔄 Reconnexion automatique : ${name}`);
-                    startBot(name);
-                }
-            }
-        }
+        // Ne démarre plus toutes les sessions automatiquement
+        console.log("⚠️ Aucun numéro fourni. Le serveur web reste actif.");
         return;
     }
 
@@ -86,10 +85,9 @@ async function startBot(phoneNumber = null, options = {}) {
     sock.commands = loadPlugins(sessionDir);
     sock.isReady = false;
     sessions.set(sessionID, sock);
+    global.addLog(sessionID, 'start', `Démarrage de la session`, 'info');
 
-    // ══════════════════════════════════════════
-    // TRAITEMENT DES MESSAGES DIRECTEMENT ICI
-    // ══════════════════════════════════════════
+    // Événement messages
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const cfg = sock.config;
         for (const msg of messages) {
@@ -110,6 +108,12 @@ async function startBot(phoneNumber = null, options = {}) {
             else if (m.videoMessage) texte = m.videoMessage.caption;
             else if (m.documentMessage) texte = m.documentMessage.caption;
             if (!texte) continue;
+
+            if (!cfg.publicMode && !msg.key.fromMe) {
+                const ownerNumber = cfg.ownerNumber || config.ownerNumber;
+                const senderNum = (msg.key.participant || msg.key.remoteJid).split('@')[0];
+                if (senderNum !== ownerNumber) continue;
+            }
 
             const prefix = cfg.prefix || ".";
             if (!texte.startsWith(prefix)) continue;
@@ -132,15 +136,17 @@ async function startBot(phoneNumber = null, options = {}) {
             if (plugin && typeof plugin.execute === "function") {
                 try {
                     await plugin.execute(sock, msg, commandArgs, cmd);
-                    console.log(`✅ [${cfg.botName}] Commande exécutée : ${cmd}`);
+                    console.log(`✅ [${sessionID}] ${cmd} exécutée`);
+                    global.addLog(sessionID, 'command', `${cmd} exécutée`, 'info');
                 } catch (err) {
-                    console.error(`❌ Erreur plugin ${cmd}:`, err);
+                    console.error(`❌ Erreur ${cmd}:`, err);
+                    global.addLog(sessionID, 'command_error', `${cmd}: ${err.message}`, 'error');
                 }
             }
         }
     });
 
-    // Attacher les autres événements (welcome, call, etc.) depuis le dossier de session
+    // Attacher les événements
     const eventsPath = path.join(sessionDir, "events");
     if (fs.existsSync(eventsPath)) {
         fs.readdirSync(eventsPath).forEach(file => {
@@ -201,7 +207,7 @@ async function startBot(phoneNumber = null, options = {}) {
                     code = await sock.requestPairingCode(sessionID, undefined);
                     console.log(`\n🔑 CODE DE PAIRING pour ${sessionID} : ${code} (standard)\n`);
                 }
-                console.log("Entrez ce code dans WhatsApp > Appareils connectés > Se connecter avec le numéro de téléphone");
+                sock.ev.emit('pairing-code', code);
             } catch (err) {
                 console.error("❌ Échec du code de pairing :", err.message);
                 console.log("⚠️  Basculement sur l'affichage du QR code...");
@@ -213,20 +219,21 @@ async function startBot(phoneNumber = null, options = {}) {
     }
 
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        console.log(`🔄 [${sessionID}] connection.update:`, JSON.stringify({ connection, qr: qr ? 'QR available' : undefined }));
+        const { connection, lastDisconnect } = update;
+        console.log(`🔄 [${sessionID}] connection: ${connection}`);
 
         if (connection === 'open') {
             sock.isReady = true;
             sock.readyAt = Date.now();
             sock.startTime = Date.now();
+            global.addLog(sessionID, 'connection', `${sessionID} en ligne`, 'info');
             console.log(`✅ [${sessionID}] est en ligne !`);
         }
 
         if (connection === 'close') {
             sock.isReady = false;
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log(`⚠️ [${sessionID}] Connexion perdue. Reconnexion : ${shouldReconnect}`);
+            global.addLog(sessionID, 'disconnection', `Déconnexion (reconnexion: ${shouldReconnect})`, 'warning');
             try { sock.ev.removeAllListeners(); } catch {}
             sessions.delete(sessionID);
             if (shouldReconnect) {
@@ -265,7 +272,8 @@ if (autoNumber && autoNumber.length >= 10) {
         startBot(autoNumber, { forcePairing: true });
     }
 } else {
-    startBot();
+    console.log("⚠️ Aucun numéro configuré. Le serveur web reste actif, aucune session démarrée.");
+    // Ne pas appeler startBot() ici
 }
 
 process.on('uncaughtException', (err) => console.error('CRITICAL ERROR:', err));

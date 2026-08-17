@@ -163,36 +163,6 @@
             border: 2px dashed var(--neon);
             clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
         }
-        .modal {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            justify-content: center; align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: var(--metal-dark);
-            border: 2px solid var(--neon);
-            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-            padding: 25px;
-            width: 95%;
-            max-width: 500px;
-            position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
-            text-align: center;
-        }
-        .close-btn {
-            position: absolute;
-            top: 10px; right: 15px;
-            font-size: 2rem;
-            color: var(--neon);
-            cursor: pointer;
-            background: none;
-            border: none;
-        }
         .footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
             text-align: center; padding: 10px;
@@ -206,9 +176,8 @@
 </head>
 <body>
 <div class="main-container">
-    <!-- Bannière publicitaire -->
-    <a href="https://influrence.onrender.com" target="_blank" class="ad-banner" title="Visiter influrence.onrender.com">
-        <video autoplay muted loop playsinline poster="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='140'><rect fill='%23111' width='600' height='140'/><text fill='%23fff' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Orbitron' font-size='20'>INFLURENCE</text></svg>">
+    <a href="https://influrence.onrender.com" target="_blank" class="ad-banner">
+        <video autoplay muted loop playsinline>
             <source src="media/pub.mp4" type="video/mp4">
             <img src="media/pub.jpg" alt="Influrence" style="width:100%;max-height:140px;object-fit:cover;">
         </video>
@@ -229,7 +198,6 @@
         <div class="card" onclick="openAdmin()"><i class="fas fa-user-shield"></i><span>Admin</span></div>
     </div>
 
-    <!-- Pairing View -->
     <div id="pairingView" class="hidden">
         <button class="back-btn" id="btnBack"><i class="fas fa-arrow-left"></i> Retour</button>
         <div id="pairingChoice">
@@ -250,29 +218,11 @@
             <button class="back-btn" style="width:100%; margin-top:10px;" id="retryBtn">Recommencer</button>
         </div>
     </div>
-
-    <!-- Avis -->
-    <h2 class="section-title">/ avis /</h2>
-    <div id="avisList" style="max-height:300px; overflow-y:auto; margin-bottom:10px;"><p>Chargement...</p></div>
-    <button class="btn" onclick="openAvisModal()">Donner mon avis</button>
-</div>
-
-<!-- Modales -->
-<div id="avisModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeAvisModal()">&times;</span>
-        <h3 style="color:var(--neon);">Votre avis</h3>
-        <div class="input-group"><input id="avisName" placeholder="Votre nom"></div>
-        <div class="input-group"><textarea id="avisMessage" rows="3" placeholder="Message" style="width:100%; background:rgba(0,0,0,0.5); border:1px solid var(--border); color:#fff; padding:10px;"></textarea></div>
-        <button class="btn" onclick="submitAvis()">Envoyer</button>
-        <p id="avisFeedback" style="margin-top:10px;"></p>
-    </div>
 </div>
 
 <div class="footer">© 2026 MARCO-XMD Bot — Tous droits réservés</div>
 
 <script>
-// Pairing
 let currentMode = 'pair';
 document.getElementById('btnPairing').addEventListener('click', ()=>{
     document.getElementById('mainMenu').style.display='none';
@@ -320,48 +270,7 @@ document.getElementById('copyBtn').addEventListener('click', ()=>{
     navigator.clipboard.writeText(document.getElementById('codeDisplay').textContent);
     alert('Copié !');
 });
-
-// Avis
-const voterId = localStorage.getItem('voterId') || (()=>{ const id='voter_'+Date.now().toString(36)+Math.random().toString(36).substr(2,9); localStorage.setItem('voterId',id); return id; })();
-async function loadAvis() {
-    try {
-        const res = await fetch('/api/avis');
-        const avis = await res.json();
-        const list = document.getElementById('avisList');
-        if (!Array.isArray(avis) || avis.length===0) { list.innerHTML='<p>Aucun avis.</p>'; return; }
-        list.innerHTML = avis.map(a=>{
-            const liked = a.voters && a.voters[voterId]==='like';
-            const disliked = a.voters && a.voters[voterId]==='dislike';
-            return `<div style="border-bottom:1px solid var(--border); padding:8px 0;">
-                <strong style="color:var(--neon)">${escapeHtml(a.name)}</strong> <small>${new Date(a.date).toLocaleString('fr-FR')}</small>
-                <p>${escapeHtml(a.message)}</p>
-                <button class="vote-btn ${liked?'active':''}" data-id="${a.id}" data-type="like">👍 ${a.likes||0}</button>
-                <button class="vote-btn ${disliked?'active':''}" data-id="${a.id}" data-type="dislike">👎 ${a.dislikes||0}</button>
-            </div>`;
-        }).join('');
-        document.querySelectorAll('.vote-btn').forEach(b=>b.addEventListener('click', async function(){
-            const id=this.dataset.id, type=this.dataset.type;
-            await fetch('/api/avis/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,type,voterId})});
-            loadAvis();
-        }));
-    } catch(e) { document.getElementById('avisList').innerHTML='<p>Erreur chargement.</p>'; }
-}
-function openAvisModal(){ document.getElementById('avisModal').classList.add('active'); }
-function closeAvisModal(){ document.getElementById('avisModal').classList.remove('active'); }
-async function submitAvis(){
-    const name=document.getElementById('avisName').value.trim(), msg=document.getElementById('avisMessage').value.trim();
-    const fb=document.getElementById('avisFeedback');
-    if(!name||!msg){ fb.textContent='Champs requis.'; return; }
-    try {
-        const res=await fetch('/api/avis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,message:msg})});
-        const d=await res.json();
-        if(d.success){ fb.textContent='✅ Envoyé !'; setTimeout(()=>{ closeAvisModal(); loadAvis(); },1000); }
-        else throw new Error(d.error);
-    } catch(e){ fb.textContent='❌ Erreur.'; }
-}
-function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 function openAdmin(){ const pwd=prompt("Code d'accès :"); if(pwd==="marco2026") window.location.href="/admin.html"; else alert("Code incorrect."); }
-loadAvis();
 </script>
 </body>
 </html>

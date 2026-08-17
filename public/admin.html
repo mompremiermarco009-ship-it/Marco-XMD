@@ -187,3 +187,403 @@
         }
     </style>
 </head>
+<body>
+<div class="container">
+    <div class="sidebar">
+        <div class="sidebar-header"><div class="logo">MARCO-XMD</div></div>
+        <div class="session-select-wrap">
+            <select id="sessionSelect" onchange="onSessionChange()"><option>Chargement...</option></select>
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-item" data-page="home" onclick="showPage('home', this)"><i class="fas fa-home"></i> Accueil</div>
+            <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard', this)"><i class="fas fa-chart-line"></i> Tableau de bord</div>
+            <div class="nav-item" data-page="sudo" onclick="showPage('sudo', this)"><i class="fas fa-star"></i> Sudo</div>
+            <div class="nav-item" data-page="banned" onclick="showPage('banned', this)"><i class="fas fa-ban"></i> Bannis</div>
+            <div class="nav-item" data-page="commands" onclick="showPage('commands', this)"><i class="fas fa-terminal"></i> Commandes</div>
+            <div class="nav-item" data-page="qrcode" onclick="showPage('qrcode', this)"><i class="fas fa-qrcode"></i> Sessions</div>
+            <div class="nav-item" data-page="logs" onclick="showPage('logs', this)"><i class="fas fa-scroll"></i> Logs</div>
+            <div class="nav-item" data-page="settings" onclick="showPage('settings', this)"><i class="fas fa-cog"></i> Paramètres</div>
+        </div>
+        <div class="sidebar-footer">SYSTÈME MULTI-SESSION v2.0</div>
+    </div>
+    <div class="main">
+        <div class="header">
+            <div>
+                <div class="header-title" id="pageTitle">TABLEAU DE BORD</div>
+                <div class="header-subtitle" id="pageSubtitle">/system/overview</div>
+            </div>
+            <button class="btn" onclick="refreshAll()"><i class="fas fa-sync-alt"></i> Rafraîchir</button>
+        </div>
+        <div class="content">
+            <div id="home" class="page">
+                <div class="card">
+                    <div class="card-title">/ accueil /</div>
+                    <div class="card-subtitle">Liens rapides</div>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <button class="btn" onclick="window.open('https://wa.me/50941131299?text=Salut%20Marco!', '_blank')"><i class="fas fa-user-astronaut"></i> Contact</button>
+                        <button class="btn" onclick="window.open('https://whatsapp.com/channel/0029VbASWFzHFxP6cbTkkz08', '_blank')"><i class="fas fa-satellite-dish"></i> Chaîne</button>
+                        <button class="btn" onclick="window.location.href='/games.html'"><i class="fas fa-gamepad"></i> Jeux</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dashboard" class="page active">
+                <div class="grid">
+                    <div class="stat-card">
+                        <div class="stat-label">État</div>
+                        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px;">
+                            <span class="status-dot offline" id="statusDot"></span>
+                            <span style="font-weight:600;" id="statusText">Hors ligne</span>
+                        </div>
+                    </div>
+                    <div class="stat-card"><div class="stat-label">Sudo (cette session)</div><div class="stat-value" id="statPremium">0</div></div>
+                    <div class="stat-card"><div class="stat-label">Bannis (global)</div><div class="stat-value" id="statBanned">0</div></div>
+                    <div class="stat-card"><div class="stat-label">Commandes</div><div class="stat-value" id="statCommands">0</div></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">/ sessions /</div>
+                    <div class="card-subtitle">Vue globale de tous les bots connectés</div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Session</th><th>Nom</th><th>État</th><th>Mode</th><th>Sudo</th><th>Cmd</th></tr></thead>
+                            <tbody id="allSessionsBody"><tr><td colspan="6" class="empty">Chargement...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sudo" class="page">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <div><div class="card-title">/ sudo /</div><div class="card-subtitle">Utilisateurs de confiance (session <span class="currentSessionLabel"></span>)</div></div>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('addPremiumModal')">+ Ajouter</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Numéro</th><th>JID</th><th>Actions</th></tr></thead>
+                            <tbody id="premiumTableBody"><tr><td colspan="3" class="empty">Chargement...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="banned" class="page">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <div><div class="card-title">/ bannis /</div><div class="card-subtitle">Liste globale partagée</div></div>
+                        <button class="btn btn-danger btn-sm" onclick="openModal('addBannedModal')">+ Bannir</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Numéro</th><th>JID</th><th>Actions</th></tr></thead>
+                            <tbody id="bannedTableBody"><tr><td colspan="3" class="empty">Chargement...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="commands" class="page">
+                <div class="card">
+                    <div class="card-title">/ commandes /</div>
+                    <div class="card-subtitle">Session <span class="currentSessionLabel"></span></div>
+                    <div class="form-group"><input class="form-input" placeholder="Rechercher..." id="commandSearch" onkeyup="filterCommands()"></div>
+                    <div id="commandsList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px;"></div>
+                </div>
+            </div>
+
+            <div id="qrcode" class="page">
+                <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="card">
+                        <div class="card-title">/ nouvelle session /</div>
+                        <div class="card-subtitle">Connecter un bot</div>
+                        <div class="form-group"><label class="form-label">Numéro</label><input class="form-input" id="newPhone" placeholder="509xxxxxxxx"></div>
+                        <div class="form-group"><label class="form-label">Méthode</label><select class="form-select" id="newMethod"><option value="pair">Code appariement</option><option value="qr">QR Code</option></select></div>
+                        <button class="btn btn-primary" style="width:100%;" onclick="createSession()">Connecter</button>
+                        <div id="pairResult" style="margin-top:16px;"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">/ session active /</div>
+                        <div class="card-subtitle" id="qrSessionLabel">-</div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                            <span class="status-dot offline" id="qrStatusDot"></span>
+                            <span style="font-weight:600;" id="qrStatusText">Hors ligne</span>
+                        </div>
+                        <button class="btn btn-danger" style="width:100%;" onclick="deleteCurrentSession()">Supprimer</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="logs" class="page">
+                <div class="card">
+                    <div class="card-title">/ logs /</div>
+                    <div class="card-subtitle">Session <span class="currentSessionLabel"></span></div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Heure</th><th>Action</th><th>Description</th><th>Sévérité</th></tr></thead>
+                            <tbody id="logsTableBody"><tr><td colspan="4" class="empty">Chargement...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings" class="page">
+                <div class="card">
+                    <div class="card-title">/ configuration /</div>
+                    <div class="card-subtitle">Session <span class="currentSessionLabel"></span></div>
+                    <div class="form-group"><label class="form-label">Nom du Bot</label><input class="form-input" id="cfgBotName"></div>
+                    <div class="form-group"><label class="form-label">Propriétaire</label><input class="form-input" id="cfgOwnerName"></div>
+                    <div class="form-group"><label class="form-label">Numéro owner</label><input class="form-input" id="cfgOwnerNumber"></div>
+                    <div class="form-group"><label class="form-label">Emoji</label><input class="form-input" id="cfgEmoji" maxlength="4"></div>
+                    <div class="form-group"><label class="form-label">Préfixe</label><input class="form-input" id="cfgPrefix" maxlength="3"></div>
+                    <div class="form-group"><label class="form-label" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="cfgPublicMode" style="width:auto;"> Mode public</label></div>
+                    <div class="form-group"><label class="form-label">Max avertissements</label><input class="form-input" type="number" id="cfgMaxWarn" disabled></div>
+                    <button class="btn btn-primary" onclick="saveSettings()">Sauvegarder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="addPremiumModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('addPremiumModal')">&times;</button>
+        <div class="modal-title">Ajouter un Sudo</div>
+        <div class="form-group"><label class="form-label">Numéro</label><input class="form-input" id="premNumber" placeholder="509xxxxxxxx"></div>
+        <button class="btn btn-primary" style="width:100%;" onclick="addPremium()">Ajouter</button>
+    </div>
+</div>
+
+<div id="addBannedModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('addBannedModal')">&times;</button>
+        <div class="modal-title">Bannir un utilisateur</div>
+        <div class="form-group"><label class="form-label">Numéro</label><input class="form-input" id="banNumber" placeholder="509xxxxxxxx"></div>
+        <button class="btn btn-danger" style="width:100%;" onclick="addBanned()">Bannir</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api/admin';
+let currentSession = null;
+let allSessions = [];
+let allCommands = [];
+
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function api(path, opts = {}) {
+    const res = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+    return data;
+}
+
+function showPage(pageName, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(pageName).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    if (el) el.classList.add('active');
+    const titles = { home: 'ACCUEIL', dashboard: 'TABLEAU DE BORD', sudo: 'SUDO', banned: 'BANNIS', commands: 'COMMANDES', qrcode: 'SESSIONS', logs: 'LOGS', settings: 'CONFIGURATION' };
+    const subtitles = { home: '/accueil/', dashboard: '/system/overview', sudo: '/sudo/manage', banned: '/banned/global', commands: '/commands/list', qrcode: '/sessions/manage', logs: '/logs/view', settings: '/config/edit' };
+    document.getElementById('pageTitle').textContent = titles[pageName];
+    document.getElementById('pageSubtitle').textContent = subtitles[pageName];
+    loadPageData(pageName);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+window.onclick = (e) => { if (e.target.classList.contains('modal')) e.target.classList.remove('active'); };
+
+async function loadSessionsList() {
+    allSessions = await api('/sessions');
+    const sel = document.getElementById('sessionSelect');
+    sel.innerHTML = allSessions.length
+        ? allSessions.map(s => `<option value="${s.id}">${s.botName} (${s.id})</option>`).join('')
+        : '<option value="">Aucune session</option>';
+    if (!currentSession && allSessions[0]) currentSession = allSessions[0].id;
+    if (currentSession) sel.value = currentSession;
+    renderAllSessionsTable();
+}
+
+function renderAllSessionsTable() {
+    const body = document.getElementById('allSessionsBody');
+    if (!allSessions.length) { body.innerHTML = '<tr><td colspan="6" class="empty">Aucune session active</td></tr>'; return; }
+    body.innerHTML = allSessions.map(s => `
+        <tr>
+            <td>${s.id}</td><td>${escapeHtml(s.botName)}</td>
+            <td><span class="status-dot ${s.isReady ? 'online' : 'offline'}"></span> ${s.isReady ? 'En ligne' : 'Hors ligne'}</td>
+            <td><span class="pill" style="background:${s.publicMode ? '#005c45' : '#5a0000'};color:#fff;">${s.publicMode ? 'PUBLIC' : 'PRIVÉ'}</span></td>
+            <td>${s.sudoCount}</td><td>${s.commandCount}</td>
+        </tr>`).join('');
+}
+
+function onSessionChange() {
+    currentSession = document.getElementById('sessionSelect').value;
+    document.querySelectorAll('.currentSessionLabel').forEach(el => el.textContent = currentSession || '-');
+    refreshAll();
+}
+
+async function refreshAll() {
+    await loadSessionsList();
+    document.querySelectorAll('.currentSessionLabel').forEach(el => el.textContent = currentSession || '-');
+    const active = document.querySelector('.page.active');
+    if (active) loadPageData(active.id);
+}
+
+async function loadPageData(pageName) {
+    if (!currentSession && pageName !== 'dashboard' && pageName !== 'banned' && pageName !== 'home') return;
+    try {
+        if (pageName === 'home') {
+            // rien à charger
+        } else if (pageName === 'dashboard') {
+            const s = allSessions.find(x => x.id === currentSession);
+            if (s) {
+                document.getElementById('statusDot').className = 'status-dot ' + (s.isReady ? 'online' : 'offline');
+                document.getElementById('statusText').textContent = s.isReady ? 'En ligne' : 'Hors ligne';
+                document.getElementById('statPremium').textContent = s.sudoCount;
+                document.getElementById('statBanned').textContent = s.bannedCount;
+                document.getElementById('statCommands').textContent = s.commandCount;
+            }
+        } else if (pageName === 'sudo') {
+            const list = await api(`/sessions/${currentSession}/sudo`);
+            const body = document.getElementById('premiumTableBody');
+            body.innerHTML = list.length ? list.map(u => `
+                <tr><td>${u.number}</td><td style="font-family:monospace;">${u.jid}</td>
+                <td><button class="btn btn-secondary btn-sm" onclick="removePremium('${u.number}')">Retirer</button></td></tr>
+            `).join('') : '<tr><td colspan="3" class="empty">Aucun sudo</td></tr>';
+        } else if (pageName === 'banned') {
+            const list = await api(`/banned`);
+            const body = document.getElementById('bannedTableBody');
+            body.innerHTML = list.length ? list.map(u => `
+                <tr><td>${u.number}</td><td style="font-family:monospace;">${u.jid}</td>
+                <td><button class="btn btn-secondary btn-sm" onclick="removeBanned('${u.number}')">Débannir</button></td></tr>
+            `).join('') : '<tr><td colspan="3" class="empty">Aucun banni</td></tr>';
+        } else if (pageName === 'commands') {
+            allCommands = await api(`/sessions/${currentSession}/commands`);
+            renderCommands(allCommands);
+        } else if (pageName === 'qrcode') {
+            const s = allSessions.find(x => x.id === currentSession);
+            document.getElementById('qrSessionLabel').textContent = currentSession || '-';
+            document.getElementById('qrStatusDot').className = 'status-dot ' + (s?.isReady ? 'online' : 'offline');
+            document.getElementById('qrStatusText').textContent = s?.isReady ? 'En ligne' : 'Hors ligne';
+        } else if (pageName === 'logs') {
+            const list = await api(`/sessions/${currentSession}/logs`);
+            const body = document.getElementById('logsTableBody');
+            body.innerHTML = list.length ? list.map(l => `
+                <tr><td>${new Date(l.timestamp).toLocaleTimeString('fr-FR')}</td><td>${escapeHtml(l.action)}</td>
+                <td>${escapeHtml(l.description)}</td><td><span class="pill" style="background:${sevColor(l.severity)};color:#fff;">${l.severity}</span></td></tr>
+            `).join('') : '<tr><td colspan="4" class="empty">Aucune activité</td></tr>';
+        } else if (pageName === 'settings') {
+            const cfg = await api(`/sessions/${currentSession}/settings`);
+            document.getElementById('cfgBotName').value = cfg.botName || '';
+            document.getElementById('cfgOwnerName').value = cfg.ownerName || '';
+            document.getElementById('cfgOwnerNumber').value = cfg.ownerNumber || '';
+            document.getElementById('cfgEmoji').value = cfg.emoji || '';
+            document.getElementById('cfgPrefix').value = cfg.prefix || '.';
+            document.getElementById('cfgPublicMode').checked = !!cfg.publicMode;
+            document.getElementById('cfgMaxWarn').value = cfg.maxWarn ?? 3;
+        }
+    } catch (err) {
+        toast('Erreur : ' + err.message);
+    }
+}
+
+function sevColor(sev) { return sev === 'error' ? 'var(--danger)' : sev === 'warning' ? 'var(--warning)' : 'var(--neon-dim)'; }
+
+function renderCommands(list) {
+    const el = document.getElementById('commandsList');
+    el.innerHTML = list.length ? list.map(c => `
+        <div style="background:rgba(0,0,0,0.4); border:1px solid var(--border); padding:14px; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);">
+            <div style="font-family:'Share Tech Mono'; color:var(--neon); margin-bottom:6px;">!${escapeHtml(c.name)}</div>
+            <div style="font-size:13px; color:var(--text-dim);">${escapeHtml(c.description || '---')}</div>
+            <div style="margin-top:8px;"><span class="pill" style="background:#002233;color:var(--neon);">${escapeHtml(c.category)}</span></div>
+        </div>`).join('') : '<p style="color:var(--text-dim);">Aucune commande.</p>';
+}
+
+function filterCommands() {
+    const term = document.getElementById('commandSearch').value.toLowerCase();
+    renderCommands(allCommands.filter(c => (c.name + (c.description||'')).toLowerCase().includes(term)));
+}
+
+async function addPremium() {
+    const number = document.getElementById('premNumber').value.trim();
+    if (!number) return toast('Numéro requis');
+    try {
+        await api(`/sessions/${currentSession}/sudo`, { method: 'POST', body: JSON.stringify({ number }) });
+        closeModal('addPremiumModal'); toast('Sudo ajouté'); loadPageData('sudo');
+    } catch (err) { toast(err.message); }
+}
+async function removePremium(number) {
+    await api(`/sessions/${currentSession}/sudo/${number}`, { method: 'DELETE' });
+    toast('Retiré'); loadPageData('sudo');
+}
+async function addBanned() {
+    const number = document.getElementById('banNumber').value.trim();
+    if (!number) return toast('Numéro requis');
+    try {
+        await api(`/banned`, { method: 'POST', body: JSON.stringify({ number }) });
+        closeModal('addBannedModal'); toast('Banni'); loadPageData('banned');
+    } catch (err) { toast(err.message); }
+}
+async function removeBanned(number) {
+    await api(`/banned/${number}`, { method: 'DELETE' });
+    toast('Débanni'); loadPageData('banned');
+}
+async function saveSettings() {
+    const body = {
+        botName: document.getElementById('cfgBotName').value.trim(),
+        ownerName: document.getElementById('cfgOwnerName').value.trim(),
+        ownerNumber: document.getElementById('cfgOwnerNumber').value.trim(),
+        emoji: document.getElementById('cfgEmoji').value.trim(),
+        prefix: document.getElementById('cfgPrefix').value.trim() || '.',
+        publicMode: document.getElementById('cfgPublicMode').checked
+    };
+    try {
+        await api(`/sessions/${currentSession}/settings`, { method: 'POST', body: JSON.stringify(body) });
+        toast('Paramètres sauvegardés'); refreshAll();
+    } catch (err) { toast(err.message); }
+}
+async function createSession() {
+    const phone = document.getElementById('newPhone').value.trim();
+    const method = document.getElementById('newMethod').value;
+    if (!phone) return toast('Numéro requis');
+    const resultEl = document.getElementById('pairResult');
+    resultEl.innerHTML = '<p style="color:var(--chrome);">Connexion...</p>';
+    try {
+        if (method === 'qr') {
+            const res = await api('/sessions/qr', { method: 'POST', body: JSON.stringify({ phone }) });
+            resultEl.innerHTML = `<div style="text-align:center;"><img src="${res.qr}" style="max-width:220px; border:3px solid var(--neon);"></div>`;
+        } else {
+            const res = await api('/sessions/pairing', { method: 'POST', body: JSON.stringify({ phone }) });
+            resultEl.innerHTML = `<div style="font-size:24px; font-weight:bold; padding:12px; border:2px dashed var(--neon); text-align:center; font-family:'Orbitron';">${res.code}</div>`;
+        }
+        setTimeout(refreshAll, 4000);
+    } catch (err) { resultEl.innerHTML = `<p style="color:var(--danger);">❌ ${err.message}</p>`; }
+}
+async function deleteCurrentSession() {
+    if (!currentSession) return;
+    if (!confirm(`Supprimer ${currentSession} ?`)) return;
+    try { await api(`/sessions/${currentSession}`, { method: 'DELETE' }); toast('Session supprimée'); currentSession = null; refreshAll(); }
+    catch (err) { toast(err.message); }
+}
+
+function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t ?? ''; return d.innerHTML; }
+
+(async function init() {
+    await loadSessionsList();
+    document.querySelectorAll('.currentSessionLabel').forEach(el => el.textContent = currentSession || '-');
+    loadPageData('dashboard');
+    setInterval(refreshAll, 15000);
+})();
+</script>
+</body>
+</html>

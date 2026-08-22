@@ -1,5 +1,19 @@
 const axios = require('axios');
-const { loadApiKeys } = require('../utils/apiKeys');
+const fs = require('fs');
+const path = require('path');
+
+function loadApiKeys() {
+    try {
+        const apiKeysPath = path.join(__dirname, '..', 'apiKeys.json');
+        if (fs.existsSync(apiKeysPath)) {
+            return JSON.parse(fs.readFileSync(apiKeysPath, 'utf-8'));
+        }
+        return {};
+    } catch (e) {
+        console.error('Erreur lecture apiKeys.json:', e.message);
+        return {};
+    }
+}
 
 module.exports = {
     name: "ai",
@@ -16,10 +30,9 @@ module.exports = {
         }
 
         const apiKeys = loadApiKeys();
-        // 🔧 Correction : lire la clé dans apiKeys.keys.openrouter
-        const apiKey = apiKeys.keys?.openrouter;
+        const apiKey = apiKeys.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
         if (!apiKey) {
-            return sock.sendMessage(jid, { text: "❌ Clé API OpenRouter manquante. Ajoute `openrouter` dans apiKeys.json → keys." }, { quoted: msg });
+            return sock.sendMessage(jid, { text: "❌ Clé API OpenRouter manquante. Ajoute `OPENROUTER_API_KEY` dans apiKeys.json." }, { quoted: msg });
         }
 
         const model = 'openrouter/auto';
@@ -55,7 +68,7 @@ module.exports = {
             console.error('Erreur AI:', err?.response?.data || err.message);
             await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } });
             let errorMsg = '❌ Erreur IA.';
-            if (err.response?.status === 401) errorMsg = '❌ Clé API invalide. Vérifiez la clé openrouter dans apiKeys.json.';
+            if (err.response?.status === 401) errorMsg = '❌ Clé API invalide. Vérifiez la clé OPENROUTER_API_KEY dans apiKeys.json.';
             else if (err.response?.status === 429) errorMsg = '❌ Limite de requêtes atteinte. Réessaie plus tard.';
             else errorMsg = `❌ Erreur IA : ${err.message}`;
             await sock.sendMessage(jid, { text: errorMsg }, { quoted: msg });

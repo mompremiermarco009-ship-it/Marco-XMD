@@ -2,17 +2,22 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
+// Chemins possibles pour apiKeys.json
+const GLOBAL_KEYS_PATH = path.join(__dirname, '..', 'apiKeys.json'); // template/apiKeys.json
+const SESSION_KEYS_PATH = path.join(__dirname, '..', '..', 'apiKeys.json'); // sessions/<ID>/apiKeys.json (si plugin dans sessions/<ID>/plugins/)
+
 function loadApiKeys() {
-    try {
-        const apiKeysPath = path.join(__dirname, '..', 'apiKeys.json');
-        if (fs.existsSync(apiKeysPath)) {
-            return JSON.parse(fs.readFileSync(apiKeysPath, 'utf-8'));
+    const paths = [SESSION_KEYS_PATH, GLOBAL_KEYS_PATH];
+    for (const p of paths) {
+        try {
+            if (fs.existsSync(p)) {
+                return JSON.parse(fs.readFileSync(p, 'utf-8'));
+            }
+        } catch (e) {
+            console.error(`Erreur lecture ${p}:`, e.message);
         }
-        return {};
-    } catch (e) {
-        console.error('Erreur lecture apiKeys.json:', e.message);
-        return {};
     }
+    return {};
 }
 
 module.exports = {
@@ -30,9 +35,9 @@ module.exports = {
         }
 
         const apiKeys = loadApiKeys();
-        const apiKey = apiKeys.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
+        const apiKey = process.env.OPENROUTER_API_KEY || apiKeys.OPENROUTER_API_KEY;
         if (!apiKey) {
-            return sock.sendMessage(jid, { text: "❌ Clé API OpenRouter manquante. Ajoute `OPENROUTER_API_KEY` dans apiKeys.json.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
+            return sock.sendMessage(jid, { text: "❌ Clé API OpenRouter manquante. Ajoute `OPENROUTER_API_KEY` dans apiKeys.json ou définis la variable d'environnement OPENROUTER_API_KEY.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
         }
 
         const model = 'openrouter/auto';

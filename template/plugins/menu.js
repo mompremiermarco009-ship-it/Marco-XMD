@@ -33,16 +33,41 @@ module.exports = {
         } catch (e) {}
 
         const categories = {
-            "🤖 GÉNÉRAL": ["ping", "menu", "info", "info2", "ownermenu", "ownerhelp", "coby", "stats", "public", "self", "setprefix"],
-            "👥 GROUPE": ["add", "tagall", "hidetag", "promote", "demote", "kick", "kickall", "ban", "unban", "open", "close", "leave", "gstatus", "delete", "warn", "warns", "resetwarn", "groupinfo", "grouplink", "everyone"],
-            "👑 OWNER": ["block", "unblock", "listbots", "removebot", "pair", "report"],
-            "🛡️ MODÉRATION": ["antilink", "antimention", "anticall", "blacklist", "control"],
-            "🎵 MÉDIA": ["play", "song", "ytdl", "fb", "ig", "tiktok", "spotify", "shazam", "anime", "imagine"],
-            "📥 DOWNLOADS": ["apk", "apkdl", "download"],
-            "🤖 IA": ["ai", "chatbot"],
-            "🎨 STICKERS": ["sticker"],
-            "🧩 OUTILS": ["qr", "jid", "calc", "barcode", "uuid", "color", "lorem", "password", "base64", "translate", "choose", "flip", "roll", "timer", "lyrics", "url"],
-            "🎮 JEUX": ["quiz", "joke", "tiktaktoe", "ttt", "exttt", "xo", "dice"]
+            "🤖 GÉNÉRAL": [
+                "ping", "menu", "info", "info2", "ownermenu", "ownerhelp", "coby", "stats",
+                "public", "self", "setprefix", "groups", "listgroups", "weather", "translate",
+                "timer", "base64", "uuid", "color", "lorem", "flip", "dice"
+            ],
+            "👥 GROUPE": [
+                "add", "tagall", "hidetag", "promote", "demote", "kick", "kickall",
+                "ban", "unban", "open", "close", "leave", "leaveall", "delete",
+                "warn", "warns", "resetwarn", "groupinfo", "grouplink", "everyone"
+            ],
+            "👑 OWNER": [
+                "block", "unblock", "listbots", "removebot", "pair", "report", "reactstatus"
+            ],
+            "🛡️ MODÉRATION": [
+                "antilink", "antimention", "anticall", "blacklist", "control"
+            ],
+            "🎵 MÉDIA": [
+                "play", "song", "lyrics", "ytdl", "fb", "ig", "tiktok", "anime", "imagine", "gstatus"
+            ],
+            "📥 DOWNLOADS": [
+                "apk", "download"
+            ],
+            "🤖 IA": [
+                "ai", "chatbot"
+            ],
+            "🎨 STICKERS": [
+                "sticker"
+            ],
+            "🧩 OUTILS": [
+                "qr", "jid", "calc", "barcode", "uuid", "color", "lorem",
+                "base64", "translate", "flip", "timer", "url"
+            ],
+            "🎮 JEUX": [
+                "quiz", "joke", "tiktaktoe", "ttt", "exttt", "xo", "dice"
+            ]
         };
 
         const buildMenuSection = (title, arr) => {

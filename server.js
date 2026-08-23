@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/admin", require("./admin-routes.js"));
 
-// Recherche
+// Recherche (inchangé)
 app.get("/api/search", async (req, res) => {
     let query = req.query.q;
     if (!query) return res.status(400).json({ error: "Paramètre 'q' requis." });
@@ -48,7 +48,7 @@ app.get("/api/search", async (req, res) => {
 const startServer = (startBotFunc, sessionsMap) => {
     app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-    // Pairing code (utilise forcePairing et écoute l'événement pairing-code)
+    // Pairing code
     app.get("/pair", async (req, res) => {
         let num = req.query.number;
         if (!num) return res.status(400).json({ error: "Numéro requis (?number=509...)" });
@@ -79,12 +79,14 @@ const startServer = (startBotFunc, sessionsMap) => {
         }
     });
 
-    // QR Code (page légère)
+    // QR Code : renvoie une data URL PNG au format JSON
     app.get("/qr", async (req, res) => {
         let num = req.query.number;
         if (!num) return res.status(400).json({ error: "Numéro requis (?number=509...)" });
         num = num.replace(/[^0-9]/g, "");
         if (num.length < 10) return res.status(400).json({ error: "Numéro invalide." });
+
+        const QRCode = require('qrcode'); // déjà dans les dépendances
         const oldSock = sessionsMap.get(num);
         if (oldSock) {
             try { oldSock.end(); oldSock.ev.removeAllListeners(); } catch(e) {}
@@ -93,22 +95,9 @@ const startServer = (startBotFunc, sessionsMap) => {
         let sock;
         try {
             sock = await startBotFunc(num, { needQR: true });
-            const qrData = await sock._qrPromise;
-            const qrHtml = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { background: #000; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        img { max-width: 100%; max-height: 100%; border: 4px solid #25D366; border-radius: 10px; }
-    </style>
-</head>
-<body>
-    <img src="${qrData}" alt="QR Code">
-</body>
-</html>`;
-            res.send(qrHtml);
+            const rawQR = await sock._qrPromise;
+            const qrImage = await QRCode.toDataURL(rawQR, { width: 300 });
+            res.json({ qr: qrImage });
         } catch (err) {
             console.error(`❌ Erreur QR pour ${num}:`, err);
             if (sock) {

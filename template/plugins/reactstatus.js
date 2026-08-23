@@ -17,7 +17,7 @@ module.exports = {
         } else if (action === 'off' || action === 'false') {
             config.reactstatus = false;
         } else {
-            return sock.sendMessage(jid, { text: `Utilisation : ${config.prefix}reactstatus on/off` }, { quoted: msg });
+            return sock.sendMessage(jid, { text: `Utilisation : ${config.prefix}reactstatus on/off\n\n> Powered by ©Mr Marco` }, { quoted: msg });
         }
 
         const sessionID = sock.user.id.split(':')[0];
@@ -25,6 +25,6 @@ module.exports = {
         fs.mkdirSync(path.dirname(configPath), { recursive: true });
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-        await sock.sendMessage(jid, { text: `✅ Réaction aux statuts ${config.reactstatus ? 'activée' : 'désactivée'}.` }, { quoted: msg });
+        await sock.sendMessage(jid, { text: `✅ Réaction aux statuts ${config.reactstatus ? 'activée' : 'désactivée'}.\n\n> Powered by ©Mr Marco` }, { quoted: msg });
     }
 };

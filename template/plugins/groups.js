@@ -16,7 +16,7 @@ module.exports = {
 
             if (groupList.length === 0) {
                 return sock.sendMessage(jid, {
-                    text: "❌ Le bot n'est dans aucun groupe pour le moment."
+                    text: "❌ Le bot n'est dans aucun groupe pour le moment.\n\n> Powered by ©Mr Marco"
                 }, { quoted: msg });
             }
 

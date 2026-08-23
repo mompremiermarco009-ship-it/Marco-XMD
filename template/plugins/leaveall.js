@@ -14,7 +14,7 @@ module.exports = {
         const config = sock.config;
 
         if (!isAuthorized(sock, msg, config)) {
-            return sock.sendMessage(jid, { text: "❌ Commande réservée au propriétaire." }, { quoted: msg });
+            return sock.sendMessage(jid, { text: "❌ Commande réservée au propriétaire.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
         }
 
         const force = args[0]?.toLowerCase() === 'confirm' || args[0]?.toLowerCase() === 'force';
@@ -26,7 +26,7 @@ module.exports = {
             const groupList = Object.values(groups);
 
             if (groupList.length === 0) {
-                return sock.sendMessage(jid, { text: "ℹ️ Le bot n'est dans aucun groupe." }, { quoted: msg });
+                return sock.sendMessage(jid, { text: "ℹ️ Le bot n'est dans aucun groupe.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
             }
 
             const keepGroups = Array.isArray(config.keepGroups) ? config.keepGroups : [];
@@ -37,7 +37,7 @@ module.exports = {
                 if (!force && keepGroups.length === 0) {
                     return sock.sendMessage(jid, {
                         text: "⚠️ Aucun groupe à conserver trouvé. Le bot va quitter TOUS les groupes.\n" +
-                              "Si tu es sûr, tape : `.leaveall confirm`"
+                              "Si tu es sûr, tape : `.leaveall confirm`\n\n> Powered by ©Mr Marco"
                     }, { quoted: msg });
                 }
             } else {
@@ -45,11 +45,11 @@ module.exports = {
             }
 
             if (groupsToLeave.length === 0) {
-                return sock.sendMessage(jid, { text: "✅ Le bot est déjà uniquement dans les groupes à conserver." }, { quoted: msg });
+                return sock.sendMessage(jid, { text: "✅ Le bot est déjà uniquement dans les groupes à conserver.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
             }
 
             await sock.sendMessage(jid, {
-                text: `🔄 Départ de ${groupsToLeave.length} groupe(s)...`
+                text: `🔄 Départ de ${groupsToLeave.length} groupe(s)...\n\n> Powered by ©Mr Marco`
             }, { quoted: msg });
 
             let successCount = 0;
@@ -73,7 +73,7 @@ module.exports = {
             if (keepGroups.length > 0) {
                 reply += `🛡️ Groupes conservés : ${keepGroups.length}\n`;
             }
-            reply += `> Powered by ©Mr Marco`;
+            reply += `\n> Powered by ©Mr Marco`;
 
             await sock.sendMessage(jid, { text: reply }, { quoted: msg });
 

@@ -25,20 +25,20 @@ module.exports = {
         const query = args.join(' ').trim();
         if (!query) {
             return sock.sendMessage(jid, {
-                text: "❌ Pose une question.\n✅ Exemples :\n• .gpt c'est quoi un VPN ?\n• .gemini écris une bio WhatsApp stylée"
+                text: "❌ Pose une question.\n✅ Exemples :\n• .gpt c'est quoi un VPN ?\n• .gemini écris une bio WhatsApp stylée\n\n> Powered by ©Mr Marco"
             }, { quoted: msg });
         }
 
         const apiKeys = loadApiKeys();
         const apiKey = apiKeys.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
         if (!apiKey) {
-            return sock.sendMessage(jid, { text: "❌ Clé API OpenRouter manquante. Ajoute `OPENROUTER_API_KEY` dans apiKeys.json." }, { quoted: msg });
+            return sock.sendMessage(jid, { text: "❌ Clé API OpenRouter manquante. Ajoute `OPENROUTER_API_KEY` dans apiKeys.json.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
         }
 
         const model = 'openrouter/auto';
         try {
             await sock.sendMessage(jid, { react: { text: '⏳', key: msg.key } });
-            await sock.sendMessage(jid, { text: '🧠 Réflexion en cours...' }, { quoted: msg });
+            await sock.sendMessage(jid, { text: '🧠 Réflexion en cours...\n\n> Powered by ©Mr Marco' }, { quoted: msg });
 
             const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
                 model,
@@ -60,7 +60,7 @@ module.exports = {
             if (!answer) throw new Error('Réponse vide');
 
             const header = cmd === 'gemini' ? '✨ GEMINI' : '🤖 GPT';
-            const reply = `╭━━━〔 ${header} 〕━━━╮\n┃ ${query}\n╰━━━━━━━━━━━━━━━━━━━━╯\n\n${answer}\n\n> MARCO-XMD`;
+            const reply = `╭━━━〔 ${header} 〕━━━╮\n┃ ${query}\n╰━━━━━━━━━━━━━━━━━━━━╯\n\n${answer}\n\n> Powered by ©Mr Marco`;
 
             await sock.sendMessage(jid, { text: reply }, { quoted: msg });
             await sock.sendMessage(jid, { react: { text: '✅', key: msg.key } });
@@ -71,7 +71,7 @@ module.exports = {
             if (err.response?.status === 401) errorMsg = '❌ Clé API invalide. Vérifiez la clé OPENROUTER_API_KEY dans apiKeys.json.';
             else if (err.response?.status === 429) errorMsg = '❌ Limite de requêtes atteinte. Réessaie plus tard.';
             else errorMsg = `❌ Erreur IA : ${err.message}`;
-            await sock.sendMessage(jid, { text: errorMsg }, { quoted: msg });
+            await sock.sendMessage(jid, { text: `${errorMsg}\n\n> Powered by ©Mr Marco` }, { quoted: msg });
         }
     }
 };

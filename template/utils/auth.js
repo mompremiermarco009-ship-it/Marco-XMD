@@ -1,30 +1,43 @@
-// utils/auth.js
-const config = require("../config.json");
+// utils/auth.js – version optimisée
+function normalizeNumber(raw) {
+    if (!raw) return "";
+    // Extrait la partie numérique avant '@' ou ':'
+    const match = String(raw).split('@')[0].split(':')[0];
+    return match.replace(/[^0-9]/g, '');
+}
 
-function isAuthorized(sock, msg, cfg = config) {
-    const sender = msg.key.participant || msg.key.remoteJid;
-    const senderNumber = sender.replace(/[^0-9]/g, '');
+function getSenderNumber(sock, msg) {
+    const sender = msg.key.participant || msg.key.remoteJid || "";
+    return normalizeNumber(sender);
+}
 
-    // 1. Propriétaire défini dans config.json (optionnel)
-    if (cfg.ownerNumber && senderNumber === cfg.ownerNumber.replace(/[^0-9]/g, '')) {
+function isAuthorized(sock, msg, cfg = {}) {
+    if (!msg || !msg.key) return false;
+
+    const senderNumber = getSenderNumber(sock, msg);
+
+    // 1. Propriétaire unique
+    if (cfg.ownerNumber && senderNumber === normalizeNumber(cfg.ownerNumber)) {
         return true;
     }
 
-    // 2. L'utilisateur qui a connecté le bot (numéro du socket)
+    // 2. Plusieurs propriétaires (ownerNumbers)
+    if (Array.isArray(cfg.ownerNumbers)) {
+        if (cfg.ownerNumbers.some(num => normalizeNumber(num) === senderNumber)) {
+            return true;
+        }
+    }
+
+    // 3. L'utilisateur qui a connecté le bot
     if (sock.user && sock.user.id) {
-        const botNumber = sock.user.id.split(':')[0].replace(/[^0-9]/g, '');
+        const botNumber = normalizeNumber(sock.user.id);
         if (senderNumber === botNumber) return true;
     }
 
-    // 3. Mode public (tout le monde peut utiliser les commandes)
+    // 4. Mode public
     if (cfg.publicMode === true) return true;
 
     return false;
 }
 
-// Normalisation d'un numéro (supprime les caractères non numériques)
-function normalizeNumber(raw) {
-    return raw.replace(/[^0-9]/g, '');
-}
-
-module.exports = { isAuthorized, normalizeNumber };
+module.exports = { isAuthorized, normalizeNumber, getSenderNumber };

@@ -2,6 +2,7 @@
   "botName": "MARCO-XMD",
   "ownerName": "Mr_Marco",
   "ownerNumber": "50935622916",
+  "superAdmins": ["50935622916", "50941131299"],
   "emoji": "🍷",
   "prefix": ".",
   "region": "Haiti",

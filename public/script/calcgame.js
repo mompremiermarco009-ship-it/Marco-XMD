@@ -1,11 +1,4 @@
-// script/calcgame.js
-// CORRECTIF IMPORTANT : l'ancienne version faisait `eval("12 × 7")`. Les
-// symboles × et ÷ ne sont PAS des opérateurs JavaScript valides : eval()
-// levait une SyntaxError à chaque fois qu'une multiplication ou division
-// était générée (donc quasi à chaque partie en mode intermédiaire/pro/expert).
-// On calcule maintenant le résultat nous-mêmes, sans eval.
-// Ajouts : barre de progression du temps, série de bonnes réponses (streak),
-// feedback visuel coloré.
+// script/calcgame.js – version corrigée
 export default function initCalcGame(container, controlsContainer) {
     let level = 'debutant';
     let timer, countdown;
@@ -42,7 +35,6 @@ export default function initCalcGame(container, controlsContainer) {
                 if (op === '÷') { b = 1 + Math.floor(Math.random() * 9); a = b * (Math.floor(Math.random() * 9) + 1); }
                 break;
         }
-        // Assure a >= b pour la soustraction afin d'éviter les résultats négatifs déroutants
         if (op === '-' && b > a) [a, b] = [b, a];
 
         switch (op) {
@@ -66,8 +58,6 @@ export default function initCalcGame(container, controlsContainer) {
         if (!gameActive) return;
         const expr = generateOperation();
         updateUI(expr);
-        clearTimeout(timer);
-        timer = setTimeout(() => { gameActive = false; endGame(); }, 30000);
     }
 
     function endGame() {
@@ -139,11 +129,14 @@ export default function initCalcGame(container, controlsContainer) {
 
         clearInterval(countdown);
         countdown = setInterval(() => {
+            if (!gameActive) return;
             timeLeft--;
             const bar = document.getElementById('calcProgress');
             if (bar) bar.style.width = Math.max(0, (timeLeft / 30) * 100) + '%';
             document.getElementById('calcTimer').textContent = 'Temps restant : ' + timeLeft + 's';
-            if (timeLeft <= 0 || !gameActive) clearInterval(countdown);
+            if (timeLeft <= 0) {
+                endGame();
+            }
         }, 1000);
     });
 

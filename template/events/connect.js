@@ -15,7 +15,7 @@ module.exports = {
         // Attendre 15 secondes après l'ouverture
         await new Promise(resolve => setTimeout(resolve, 15000));
 
-        if (!sock.isReady || sock.ws?.readyState !== 1) return;
+        if (!sock.isReady) return;
 
         // Ne pas renvoyer si déjà fait dans les 10 minutes
         if (now - lastSentTime < 600000) {

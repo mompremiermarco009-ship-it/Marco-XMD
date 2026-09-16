@@ -3,6 +3,14 @@ sessions/
 downloads/
 *.log
 .env
+.DS_Store
+
+# Dossiers temporaires (fichiers générés)
 voice_studio/tmp/
 video_downloader/tmp/
+voice_studio/audio/
+
+# Cookies sensibles
 video_downloader/cookies.txt
+cookies.txt
+voice_studio/audio/

@@ -1,7 +1,5 @@
 const express = require("express");
 const path = require("path");
-const fs = require("fs").promises;
-const axios = require("axios");
 const config = require("./config.json");
 
 const app = express();
@@ -10,45 +8,14 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json({ limit: "5kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+// Dashboard admin (sessions, commandes, logs, paramètres)
 app.use("/api/admin", require("./admin-routes.js"));
 
-// Recherche (inchangé)
-app.get("/api/search", async (req, res) => {
-    let query = req.query.q;
-    if (!query) return res.status(400).json({ error: "Paramètre 'q' requis." });
-    const cleanedQuery = query.replace(/[?.,;!]/g, '').replace(/\b(qu['’]elle|quelle|quel|quels|quelles|qui|que|quoi|comment|pourquoi|où|quand)\b/gi, '').trim();
-    const queriesToTry = [cleanedQuery, query].filter(q => q.length > 0);
-    for (const q of queriesToTry) {
-        try {
-            const searchResp = await axios.get("https://fr.wikipedia.org/w/api.php", { params: { action: "query", list: "search", srsearch: q, format: "json", srlimit: 1 } });
-            const pages = searchResp.data?.query?.search;
-            if (pages && pages.length > 0) {
-                const pageTitle = pages[0].title;
-                const summaryResp = await axios.get("https://fr.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(pageTitle));
-                if (summaryResp.data && summaryResp.data.extract) {
-                    const snippet = summaryResp.data.extract.length > 500 ? summaryResp.data.extract.substring(0, 500) + '…' : summaryResp.data.extract;
-                    return res.json({ title: pageTitle, snippet, link: summaryResp.data.content_urls?.desktop?.page || "" });
-                }
-            }
-        } catch (err) {}
-        try {
-            const ddgResp = await axios.get("https://api.duckduckgo.com/", { params: { q: q, format: "json", no_html: 1, skip_disambig: 1 } });
-            const data = ddgResp.data;
-            let snippet = data.AbstractText;
-            if (!snippet && data.RelatedTopics?.length) snippet = data.RelatedTopics[0].Text;
-            if (snippet) {
-                if (snippet.length > 500) snippet = snippet.substring(0, 500) + '…';
-                return res.json({ title: data.Heading || q, snippet, link: data.AbstractURL || "" });
-            }
-        } catch (err) {}
-    }
-    res.json({ error: "Aucune réponse trouvée." });
-});
-
 const startServer = (startBotFunc, sessionsMap) => {
+    // Page principale
     app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-    // Pairing code
+    // ---------- Pairing code ----------
     app.get("/pair", async (req, res) => {
         let num = req.query.number;
         if (!num) return res.status(400).json({ error: "Numéro requis (?number=509...)" });
@@ -79,14 +46,14 @@ const startServer = (startBotFunc, sessionsMap) => {
         }
     });
 
-    // QR Code : renvoie une data URL PNG au format JSON
+    // ---------- QR Code (data URL PNG) ----------
     app.get("/qr", async (req, res) => {
         let num = req.query.number;
-        if (!num) return res.status(400).json({ error: "Numéro requis (?number=509...)" });
+        if (!num) return res.status(400).json({ error: "Numéro requis" });
         num = num.replace(/[^0-9]/g, "");
         if (num.length < 10) return res.status(400).json({ error: "Numéro invalide." });
 
-        const QRCode = require('qrcode'); // déjà dans les dépendances
+        const QRCode = require('qrcode');
         const oldSock = sessionsMap.get(num);
         if (oldSock) {
             try { oldSock.end(); oldSock.ev.removeAllListeners(); } catch(e) {}
@@ -108,13 +75,44 @@ const startServer = (startBotFunc, sessionsMap) => {
         }
     });
 
+    // ---------- Statut ----------
     app.get("/status", (req, res) => {
-        const active = Array.from(sessionsMap.keys());
-        res.json({ botName: config.botName, activeSessionsCount: active.length, sessions: active });
+        // Si on demande explicitement du JSON
+        if (req.query.json === '1' || req.headers.accept?.includes('application/json')) {
+            const active = Array.from(sessionsMap.keys());
+            return res.json({
+                botName: config.botName,
+                activeSessionsCount: active.length,
+                sessions: active
+            });
+        }
+        // Sinon, servir la page HTML stylée
+        res.sendFile(path.join(__dirname, "public", "status.html"));
     });
 
+    // ---------- Video Downloader (Option C : temporaire) ----------
+    app.use(require("./video_downloader/routes.js"));
+    app.use("/video_downloader", express.static(path.join(__dirname, "video_downloader", "public")));
+    app.get("/video_downloader.html", (req, res) => res.redirect("/video_downloader/"));
+
+    // ---------- MarcoVoice Studio (Option C : temporaire) ----------
+    app.use(require("./voice_studio/routes.js"));
+    app.use("/voice_studio", express.static(path.join(__dirname, "voice_studio", "public")));
+    app.get("/voice_studio.html", (req, res) => res.redirect("/voice_studio/"));
+
+    // ---------- Marco Lyrics ----------
+    app.use(require("./marco_lyrics/routes.js"));
+    app.use("/marco_lyrics", express.static(path.join(__dirname, "marco_lyrics", "public")));
+    app.get("/marco_lyrics.html", (req, res) => res.redirect("/marco_lyrics/"));
+
+    // ---------- Page 404 ----------
+    app.use((req, res) => {
+        res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
+    });
+
+
     const server = app.listen(PORT, "0.0.0.0", () => {
-        console.log(`🌍 Serveur Web de ${config.botName} lancé sur le port ${PORT}`);
+        console.log(`🌍 Serveur Web de ${config.botName} sur le port ${PORT}`);
     });
     server.on('error', (err) => console.error('❌ Erreur serveur:', err.message));
 };

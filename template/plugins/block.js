@@ -1,49 +1,75 @@
-const { isAuthorized, normalizeNumber } = require("../utils/auth");
+const { isAuthorized, normalizeNumber, extractTarget } = require('../utils/auth');
 
 module.exports = {
-    name: "block",
-    alias: ["unblock"],
-    async execute(sock, msg, args, cmd, originalCmd) {
+    name: 'block',
+    aliases: ['unblock', 'bloquer', 'debloquer'],
+    category: 'owner',
+    desc: 'Bloque ou débloque un utilisateur',
+    usage: '.block @user / .unblock @user',
+
+    async execute(sock, msg, args, cmd) {
         const jid = msg.key.remoteJid;
-        if (!isAuthorized(sock, msg)) {
-            return sock.sendMessage(jid, { text: "❌ Vous n'êtes pas autorisé." }, { quoted: msg });
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+        const prefix = cfg.prefix || '.';
+
+        if (!isAuthorized(sock, msg, cfg)) {
+            return sock.sendMessage(jid, { text: '❌ Réservé au propriétaire.' }, { quoted: msg });
         }
 
-        let targetJid = null;
+        const isUnblock = ['unblock', 'debloquer', 'débloquer'].includes((cmd || '').toLowerCase());
 
-        // 1. Si c'est une conversation privée (pas de @g.us)
-        if (!jid.endsWith('@g.us')) {
-            targetJid = jid; // l'autre participant
-        }
-        // 2. Sinon, groupe : recherche par réponse, mention ou argument
-        else {
-            if (msg.message?.extendedTextMessage?.contextInfo?.participant) {
-                targetJid = msg.message.extendedTextMessage.contextInfo.participant;
-            } else if (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
-                targetJid = msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
-            } else if (args.length > 0) {
-                let number = normalizeNumber(args[0]);
-                if (number) targetJid = number + "@s.whatsapp.net";
-            }
+        let target = extractTarget(msg, args);
+
+        if (!target && !jid.endsWith('@g.us')) {
+            target = jid;
         }
 
-        if (!targetJid) {
-            return sock.sendMessage(jid, { text: "❌ Utilisation : en privé, tapez .block ; en groupe, mentionnez ou répondez." }, { quoted: msg });
+        if (!target) {
+            return sock.sendMessage(jid, {
+                text: `╔════════════════════════╗\n` +
+                      `║   ${isUnblock ? '🔓' : '🔒'}  ${isUnblock ? 'UNBLOCK' : 'BLOCK'}\n` +
+                      `╚════════════════════════╝\n\n` +
+                      `┃  📌 Utilisation :\n` +
+                      `┃  • ${prefix}${isUnblock ? 'unblock' : 'block'} @user\n` +
+                      `┃  • ${prefix}${isUnblock ? 'unblock' : 'block'} 509xxxxxxxx\n` +
+                      `┃  • Répondre à un message\n\n` +
+                      `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
         }
 
-        const botJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        if (targetJid === botJid) {
-            return sock.sendMessage(jid, { text: "❌ Je ne peux pas me bloquer moi-même." }, { quoted: msg });
+        const targetNumber = normalizeNumber(target);
+        const botNumber = normalizeNumber(sock.user.id);
+        const ownerNumber = normalizeNumber(cfg.ownerNumber);
+
+        if (targetNumber === botNumber) {
+            return sock.sendMessage(jid, { text: '🚫 Je ne peux pas me bloquer moi-même.' }, { quoted: msg });
+        }
+        if (targetNumber === ownerNumber) {
+            return sock.sendMessage(jid, { text: '🚫 Impossible de bloquer le propriétaire.' }, { quoted: msg });
         }
 
-        const action = originalCmd === "unblock" ? "unblock" : "block";
         try {
-            await sock.updateBlockStatus(targetJid, action);
-            const message = action === "block" ? `🔒 Utilisateur bloqué.` : `🔓 Utilisateur débloqué.`;
-            await sock.sendMessage(jid, { text: message }, { quoted: msg });
-        } catch (error) {
-            console.error("Erreur block/unblock :", error);
-            await sock.sendMessage(jid, { text: "❌ Erreur lors de l'action." }, { quoted: msg });
+            const action = isUnblock ? 'unblock' : 'block';
+            await sock.updateBlockStatus(target, action);
+
+            const emoji = isUnblock ? '🔓' : '🔒';
+            const label = isUnblock ? 'DÉBLOQUÉ' : 'BLOQUÉ';
+            const status = isUnblock ? '✅' : '🚫';
+
+            await sock.sendMessage(jid, {
+                text: `╔════════════════════════╗\n` +
+                      `║   ${status}  𝐔𝐭𝐢𝐥𝐢𝐬𝐚𝐭𝐞𝐮𝐫 ${label}\n` +
+                      `╚════════════════════════╝\n\n` +
+                      `┃  ${emoji}  @${targetNumber}\n\n` +
+                      `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`,
+                mentions: [target]
+            }, { quoted: msg });
+        } catch (err) {
+            console.error('Erreur block:', err.message);
+            await sock.sendMessage(jid, {
+                text: `⚠️ Erreur lors du ${isUnblock ? 'déblocage' : 'blocage'}.\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
         }
     }
 };

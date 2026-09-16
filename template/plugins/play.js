@@ -1,203 +1,370 @@
+// template/plugins/play.js — Recherche + téléchargement intelligent
+// Si le fichier est petit → envoie sur WhatsApp
+// Si trop gros → envoie le lien du site
 const yts = require('yt-search');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+
+// Limite de taille en octets (60 Mo)
+const MAX_WHATSAPP_SIZE = 60 * 1024 * 1024;
+
+// Stockage temporaire des recherches par chat
+function getPlayState(sock) {
+    if (!sock._playState) sock._playState = new Map();
+    return sock._playState;
+}
+
+// Formate une taille en octets
+function humanSize(bytes) {
+    if (!bytes || bytes < 0) return '—';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+}
 
 module.exports = {
-    name: "play",
-    aliases: ["music", "mp3", "song", "video", "doc"],
-    desc: "Recherche YouTube et propose le type de téléchargement",
-    usage: ".play <nom>",
-    async execute(sock, msg, args) {
+    name: 'play',
+    aliases: ['video', 'music', 'song', 'yt', 'ytmp4', 'ytmp3'],
+    category: 'downloader',
+    desc: 'Recherche une vidéo YouTube et propose le téléchargement',
+    usage: '.play <titre>',
+
+    async execute(sock, msg, args, cmd) {
         const jid = msg.key.remoteJid;
+        const cfg = sock.config || {};
+        const prefix = cfg.prefix || '.';
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+        const publicUrl = cfg.publicUrl || 'https://marco-xmd-v2.onrender.com';
+
         const query = args.join(' ').trim();
-        if (!query) {
+
+        // Vérifier le lien YouTube direct
+        let video = null;
+        if (/youtube\.com|youtu\.be/i.test(query)) {
+            video = {
+                url: query,
+                title: 'Vidéo YouTube',
+                timestamp: '',
+                views: 0,
+                thumbnail: '',
+                author: { name: '' }
+            };
+        } else if (!query) {
             return sock.sendMessage(jid, {
-                text: `┌───〔 🎬 *PLAY* 〕────\n┝ ➩ ❌ Donne un nom de vidéo/musique.\n┝ ➩ Exemple : .play Imagine Dragons\n└─────────────────────\n> MARCO-XMD`
+                text: `🎬 *𝐌𝐚𝐫𝐜𝐨 𝐏𝐥𝐚𝐲*\n\n` +
+                      `Utilisation :\n` +
+                      `• ${prefix}play <titre>\n` +
+                      `• ${prefix}play <lien youtube>\n\n` +
+                      `Exemples :\n` +
+                      `• ${prefix}play Dernière danse\n` +
+                      `• ${prefix}play https://youtu.be/...\n\n` +
+                      `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
             }, { quoted: msg });
         }
 
-        try { await sock.sendMessage(jid, { react: { text: '🔎', key: msg.key } }); } catch {}
-
-        let video;
+        // Réaction de recherche
         try {
-            const { videos } = await yts(query);
-            if (!videos || videos.length === 0) throw new Error('Aucune vidéo');
-            video = videos[0];
-        } catch {
-            try { await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } }); } catch {}
-            return sock.sendMessage(jid, { text: '❌ Aucun résultat trouvé.' }, { quoted: msg });
-        }
+            await sock.sendMessage(jid, { react: { text: '🔎', key: msg.key } });
+        } catch {}
 
-        const caption = `┌───〔 🎬 *${video.title}* 〕────\n┝ ➩ ⏱ *${video.timestamp}*\n┝ ➩ 👀 *${video.views}* vues\n└─────────────────────\n\n*Choisissez le format :*\n1️⃣ Audio (MP3)\n2️⃣ Vidéo (MP4)\n3️⃣ Document (Fichier)\n\nRépondez simplement par *1*, *2* ou *3*\n\n Powered by ©Mr Marco`;
-
-        try {
-            await sock.sendMessage(jid, { image: { url: video.thumbnail }, caption: caption }, { quoted: msg });
-        } catch {
-            await sock.sendMessage(jid, { text: caption }, { quoted: msg });
-        }
-
-        const handler = async ({ messages }) => {
-            const m = messages[0];
-            if (!m || !m.message) return;
-            if (m.key.remoteJid !== jid || m.key.fromMe) return;
-            const text = m.message.conversation || m.message.extendedTextMessage?.text || '';
-            if (text === '1' || text === '2' || text === '3') {
-                sock.ev.off('messages.upsert', handler);
-                await module.exports.handleChoice(sock, m, text, video);
+        // Recherche YouTube si nécessaire
+        if (!video) {
+            try {
+                const { videos } = await yts(query);
+                if (!videos || videos.length === 0) throw new Error('Aucun résultat');
+                video = videos[0];
+            } catch (err) {
+                try { await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } }); } catch {}
+                return sock.sendMessage(jid, {
+                    text: `❌ *Aucun résultat trouvé*\n\nEssayez avec un autre titre.\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+                }, { quoted: msg });
             }
-        };
-        sock.ev.on('messages.upsert', handler);
-        setTimeout(() => sock.ev.off('messages.upsert', handler), 60000);
+        }
+
+        // Sauvegarder l'état
+        const states = getPlayState(sock);
+        states.set(jid, { video, timestamp: Date.now() });
+
+        // Formater les vues
+        let viewsText = '—';
+        if (typeof video.views === 'number' && video.views > 0) {
+            if (video.views >= 1e9) viewsText = (video.views / 1e9).toFixed(1) + 'B';
+            else if (video.views >= 1e6) viewsText = (video.views / 1e6).toFixed(1) + 'M';
+            else if (video.views >= 1e3) viewsText = (video.views / 1e3).toFixed(1) + 'K';
+            else viewsText = String(video.views);
+        }
+
+        // Message de choix
+        const text = `╔════════════════════════════╗\n` +
+                     `║   🎬  𝐌𝐚𝐫𝐜𝐨 𝐏𝐥𝐚𝐲  🎬\n` +
+                     `╚════════════════════════════╝\n\n` +
+                     `╭━━━〔 📌 𝐕𝐢𝐝𝐞́𝐨 〕━━━╮\n` +
+                     `┃  🎬  ${video.title || 'Vidéo'}\n` +
+                     (video.author?.name ? `┃  👤  ${video.author.name}\n` : '') +
+                     (video.timestamp ? `┃  ⏱️  ${video.timestamp}\n` : '') +
+                     `┃  👀  ${viewsText}\n` +
+                     `╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n` +
+                     `╭━━━〔 🎯 𝐅𝐨𝐫𝐦𝐚𝐭𝐬 〕━━━╮\n` +
+                     `┃  Ⓐ︎  🎬  𝐌𝐏𝟒 𝐇𝐃  (720p)\n` +
+                     `┃  Ⓑ︎  🎬  𝐌𝐏𝟒 𝐒𝐃  (360p)\n` +
+                     `┃  Ⓒ︎  🎵  𝐌𝐏𝟑 𝟏𝟐𝟖\n` +
+                     `┃  Ⓓ︎  🎵  𝐌𝐏𝟑 𝟑𝟐𝟎\n` +
+                     `╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n` +
+                     `🔡 _𝑅𝑒́𝑝𝑜𝑛𝑑𝑒𝑧 𝑎𝑣𝑒𝑐 𝑙𝑎 𝑙𝑒𝑡𝑡𝑟𝑒 (A-D)_\n` +
+                     `📦 _𝐸𝑛𝑣𝑜𝑖 𝑑𝑖𝑟𝑒𝑐𝑡 𝑠𝑖 < ${humanSize(MAX_WHATSAPP_SIZE)}_\n\n` +
+                     `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
+
+        // Envoyer avec miniature
+        try {
+            if (video.thumbnail) {
+                await sock.sendMessage(jid, {
+                    image: { url: video.thumbnail },
+                    caption: text
+                }, { quoted: msg });
+            } else {
+                await sock.sendMessage(jid, { text }, { quoted: msg });
+            }
+        } catch {
+            await sock.sendMessage(jid, { text }, { quoted: msg });
+        }
+
+        // Attacher le listener (une seule fois)
+        if (!sock._playListenerAttached) {
+            sock._playListenerAttached = true;
+
+            sock.ev.on('messages.upsert', async ({ messages, type }) => {
+                if (type !== 'notify') return;
+                const m = messages[0];
+                if (!m || !m.message) return;
+                if (m.key.fromMe) return;
+
+                const mJid = m.key.remoteJid;
+                const states = getPlayState(sock);
+                const state = states.get(mJid);
+                if (!state) return;
+
+                // Expiration
+                if (Date.now() - state.timestamp > 5 * 60 * 1000) {
+                    states.delete(mJid);
+                    return;
+                }
+
+                const txt = (
+                    m.message.conversation ||
+                    m.message.extendedTextMessage?.text ||
+                    ''
+                ).trim().toUpperCase();
+
+                const letter = txt.match(/^([A-D])$/)?.[1];
+                if (!letter) return;
+
+                states.delete(mJid);
+
+                const formats = {
+                    'A': { format: 'mp4', quality: '720', label: 'MP4 HD 720p', emoji: '🎬', type: 'video' },
+                    'B': { format: 'mp4', quality: '360', label: 'MP4 SD 360p', emoji: '🎬', type: 'video' },
+                    'C': { format: 'mp3', quality: '128', label: 'MP3 128 kbps', emoji: '🎵', type: 'audio' },
+                    'D': { format: 'mp3', quality: '320', label: 'MP3 320 kbps', emoji: '🎵', type: 'audio' }
+                };
+
+                const choice = formats[letter];
+                if (!choice) return;
+
+                await handleDownload(sock, m, mJid, state.video, choice, publicUrl, owner);
+            });
+        }
     }
 };
 
-module.exports.handleChoice = async function(sock, msg, choice, video) {
-    const jid = msg.key.remoteJid;
-    try { await sock.sendMessage(jid, { react: { text: '⏳', key: msg.key } }); } catch {}
+// ═══════════════════════════════════════════════════════════
+//  Téléchargement via l'API du site + décision
+// ═══════════════════════════════════════════════════════════
+async function handleDownload(sock, msg, jid, video, choice, publicUrl, owner) {
+    // Réaction de chargement
+    try {
+        await sock.sendMessage(jid, { react: { text: '⏳', key: msg.key } });
+    } catch {}
 
-    const mode = choice === '1' ? 'audio' : (choice === '2' ? 'video' : 'doc');
+    // Envoyer un message d'attente
+    let statusMsg = null;
+    try {
+        statusMsg = await sock.sendMessage(jid, {
+            text: `⏳ *Téléchargement en cours...*\n\n` +
+                  `📦 ${choice.label}\n` +
+                  `🎬 ${video.title}\n\n` +
+                  `_Merci de patienter..._`
+        }, { quoted: msg });
+    } catch {}
 
-    const tryReq = async (getter, attempts = 2) => {
-        let lastError;
-        for (let attempt = 1; attempt <= attempts; attempt++) {
-            try { return await getter(); } catch (err) {
-                lastError = err;
-                if (attempt < attempts) await new Promise(r => setTimeout(r, 1000));
-            }
-        }
-        throw lastError;
-    };
-
-    const getAudio = async (url) => {
-        const res = await tryReq(() => axios.get(`https://eliteprotech-apis.zone.id/ytdown?url=${encodeURIComponent(url)}&format=mp3`, { timeout: 30000 }));
-        if (res?.data?.success && res.data.downloadURL) return { download: res.data.downloadURL, title: res.data.title, type: 'mp3' };
-        throw new Error('Audio fail');
-    };
-
-    const getVideo = async (url) => {
-        const res = await tryReq(() => axios.get(`https://api.yupra.my.id/api/downloader/ytplay?url=${encodeURIComponent(url)}`, { timeout: 30000 }));
-        if (res?.data?.success && res.data.data?.download_url) return { download: res.data.data.download_url, title: res.data.data.title, type: 'mp4' };
-        throw new Error('Video fail');
-    };
-
-    const getVideoBackup = async (url) => {
-        const res = await tryReq(() => axios.get(`https://api.elianabot.xyz/downloader/ytmp4?url=${encodeURIComponent(url)}`, { timeout: 30000 }));
-        if (res?.data?.status === 200 && res.data.result?.download_url) return { download: res.data.result.download_url, title: res.data.result.title, type: 'mp4' };
-        throw new Error('VideoBackup fail');
-    };
-
-    const getBackup = async (url) => {
-        const res = await tryReq(() => axios.get(`https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url=${encodeURIComponent(url)}`, { timeout: 30000 }));
-        if (res?.data?.dl) return { download: res.data.dl, title: res.data.title, type: 'mp3' };
-        throw new Error('Backup fail');
-    };
-
-    const convertToMp3 = (inputBuffer) => {
-        const tmpDir = path.join(__dirname, '..', 'tmp');
-        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-        const inputFile = path.join(tmpDir, `input_${Date.now()}.audio`);
-        const outputFile = path.join(tmpDir, `output_${Date.now()}.mp3`);
-        fs.writeFileSync(inputFile, inputBuffer);
-        try {
-            execSync(`ffmpeg -y -i "${inputFile}" -codec:a libmp3lame -b:a 128k "${outputFile}"`, { stdio: 'pipe' });
-            return fs.readFileSync(outputFile);
-        } finally {
-            try { fs.unlinkSync(inputFile); } catch {}
-            try { fs.unlinkSync(outputFile); } catch {}
-        }
-    };
-
-    const isMp3 = (buffer) => {
-        if (buffer.length < 4) return false;
-        const header = buffer.slice(0, 4).toString();
-        return header === 'ID3' || (buffer[0] === 0xFF && (buffer[1] & 0xE0) === 0xE0);
-    };
-
-    // Télécharge un buffer et retourne aussi le content-type
-    const downloadBufferWithMeta = async (url) => {
-        const resp = await axios.get(url, { responseType: 'arraybuffer', timeout: 90000 });
-        const buffer = Buffer.from(resp.data);
-        return { buffer, contentType: resp.headers['content-type'] || '' };
-    };
+    // Appeler l'API du site
+    const apiUrl = `${publicUrl}/api/video/download?url=${encodeURIComponent(video.url)}&format=${choice.format}&quality=${choice.quality}`;
 
     try {
-        if (mode === 'audio') {
-            for (const api of [getAudio, getBackup]) {
-                try {
-                    const data = await api(video.url);
-                    if (!data.download) continue;
-                    const { buffer } = await downloadBufferWithMeta(data.download);
-                    if (buffer.length === 0) continue;
-                    let finalBuffer = buffer;
-                    if (!isMp3(buffer)) {
-                        finalBuffer = convertToMp3(buffer);
-                    }
-                    const fileName = `${(data.title || video.title).replace(/[^\w\s-]/g, '')}.mp3`;
-                    await sock.sendMessage(jid, { audio: finalBuffer, mimetype: 'audio/mpeg', fileName, ptt: false }, { quoted: msg });
-                    break;
-                } catch (e) { console.log('Audio API fail:', e.message); }
-            }
-        } else if (mode === 'video') {
-            for (const api of [getVideo, getVideoBackup]) {
-                try {
-                    const data = await api(video.url);
-                    if (!data.download) continue;
-                    await sock.sendMessage(jid, { video: { url: data.download }, mimetype: 'video/mp4', caption: video.title }, { quoted: msg });
-                    break;
-                } catch (e) { console.log('Video API fail:', e.message); }
-            }
-        } else if (mode === 'doc') {
-            let success = false;
-            // Essayer les APIs vidéo pour obtenir un fichier vidéo
-            for (const api of [getVideo, getVideoBackup]) {
-                try {
-                    const data = await api(video.url);
-                    if (!data.download) continue;
-                    const { buffer, contentType } = await downloadBufferWithMeta(data.download);
-                    if (buffer.length === 0) continue;
-                    // Déterminer l'extension à partir du content-type
-                    let ext = 'mp4'; // par défaut
-                    if (contentType.includes('video/mp4')) ext = 'mp4';
-                    else if (contentType.includes('video/webm')) ext = 'webm';
-                    else if (contentType.includes('video/x-matroska') || contentType.includes('video/mkv')) ext = 'mkv';
-                    else if (contentType.includes('audio/mpeg')) ext = 'mp3';
-                    else ext = 'mp4'; // fallback
-                    const fileName = `${(data.title || video.title).replace(/[^\w\s-]/g, '')}.${ext}`;
-                    await sock.sendMessage(jid, { document: buffer, mimetype: contentType || 'application/octet-stream', fileName, caption: video.title }, { quoted: msg });
-                    success = true;
-                    break;
-                } catch (e) { console.log('Doc video fail:', e.message); }
-            }
+        const res = await axios.get(apiUrl, { timeout: 180000 });
 
-            // Fallback audio en document
-            if (!success) {
-                for (const api of [getAudio, getBackup]) {
-                    try {
-                        const data = await api(video.url);
-                        if (!data.download) continue;
-                        const { buffer } = await downloadBufferWithMeta(data.download);
-                        if (buffer.length === 0) continue;
-                        let finalBuffer = buffer;
-                        if (!isMp3(buffer)) {
-                            finalBuffer = convertToMp3(buffer);
-                        }
-                        const fileName = `${(data.title || video.title).replace(/[^\w\s-]/g, '')}.mp3`;
-                        await sock.sendMessage(jid, { document: finalBuffer, mimetype: 'audio/mpeg', fileName, caption: video.title }, { quoted: msg });
-                        success = true;
-                        break;
-                    } catch (e) { console.log('Doc audio fallback fail:', e.message); }
-                }
-            }
-
-            if (!success) throw new Error('Aucun document récupéré');
+        if (!res.data || !res.data.ok) {
+            throw new Error('Réponse invalide du serveur');
         }
 
-        try { await sock.sendMessage(jid, { react: { text: '✅', key: msg.key } }); } catch {}
+        const { token, ext, size, streamUrl, downloadUrl } = res.data;
+        const sizeHuman = humanSize(size);
+
+        // ─── Décision : envoyer ou rediriger ───
+        if (size <= MAX_WHATSAPP_SIZE) {
+            // Envoi direct sur WhatsApp
+            await sendFileToWhatsApp(sock, msg, jid, `${publicUrl}${downloadUrl}`, choice, video, size, owner, statusMsg);
+        } else {
+            // Trop gros → envoyer le lien
+            const directLink = `${publicUrl}/video_downloader/?url=${encodeURIComponent(video.url)}&format=${choice.format}&quality=${choice.quality}`;
+
+            const text = `╔════════════════════════════╗\n` +
+                         `║   📦  𝐅𝐢𝐜𝐡𝐢𝐞𝐫 𝐭𝐫𝐨𝐩 𝐠𝐫𝐨𝐬\n` +
+                         `╚════════════════════════════╝\n\n` +
+                         `╭━━━〔 ⚠️ 𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧 〕━━━╮\n` +
+                         `┃  📦  𝐓𝐚𝐢𝐥𝐥𝐞 : ${sizeHuman}\n` +
+                         `┃  🎯  𝐅𝐨𝐫𝐦𝐚𝐭 : ${choice.label}\n` +
+                         `┃  🎬  ${video.title}\n` +
+                         `╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n` +
+                         `💡 _Le fichier dépasse la limite_\n` +
+                         `_de WhatsApp (${humanSize(MAX_WHATSAPP_SIZE)})._\n\n` +
+                         `🔗 *𝑇𝑒́𝑙𝑒́𝑐ℎ𝑎𝑟𝑔𝑒𝑧 𝑖𝑐𝑖 :*\n` +
+                         `${directLink}\n\n` +
+                         `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
+
+            if (statusMsg) {
+                try {
+                    await sock.sendMessage(jid, { text: '✅ *Fichier prêt !*', edit: statusMsg.key });
+                } catch {}
+            }
+
+            if (video.thumbnail) {
+                try {
+                    await sock.sendMessage(jid, {
+                        image: { url: video.thumbnail },
+                        caption: text
+                    }, { quoted: msg });
+                } catch {
+                    await sock.sendMessage(jid, { text }, { quoted: msg });
+                }
+            } else {
+                await sock.sendMessage(jid, { text }, { quoted: msg });
+            }
+
+            try {
+                await sock.sendMessage(jid, { react: { text: '🔗', key: msg.key } });
+            } catch {}
+
+            // Supprimer le fichier du serveur (inutile)
+            setTimeout(() => {
+                axios.delete(`${publicUrl}/api/video/${token}`).catch(() => {});
+            }, 5000);
+        }
     } catch (err) {
-        console.error('Erreur play:', err.message);
-        try { await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } }); } catch {}
-        await sock.sendMessage(jid, { text: '❌ Échec du téléchargement.' }, { quoted: msg });
+        console.error('❌ Erreur téléchargement:', err.message);
+
+        try {
+            await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } });
+        } catch {}
+
+        let errorMsg = '❌ Impossible de télécharger la vidéo.';
+        if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+            errorMsg += '\n⚠️ Le serveur est injoignable.';
+        } else if (err.code === 'ECONNABORTED') {
+            errorMsg += '\n⚠️ Le téléchargement a pris trop de temps.';
+        } else if (err.message) {
+            errorMsg += `\n_Détail : ${err.message}_`;
+        }
+
+        if (statusMsg) {
+            try {
+                await sock.sendMessage(jid, { text: errorMsg, edit: statusMsg.key });
+                return;
+            } catch {}
+        }
+
+        await sock.sendMessage(jid, {
+            text: `${errorMsg}\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+        }, { quoted: msg });
     }
-};
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Envoi du fichier sur WhatsApp (depuis le lien de téléchargement)
+// ═══════════════════════════════════════════════════════════
+async function sendFileToWhatsApp(sock, msg, jid, downloadUrl, choice, video, size, owner, statusMsg) {
+    console.log(`📥 Téléchargement depuis ${downloadUrl} (${humanSize(size)})`);
+
+    try {
+        // Télécharger le buffer
+        const response = await axios.get(downloadUrl, {
+            responseType: 'arraybuffer',
+            timeout: 180000,
+            maxContentLength: 100 * 1024 * 1024 // 100 Mo max
+        });
+
+        const buffer = Buffer.from(response.data);
+        const actualSize = buffer.length;
+        console.log(`✅ Buffer reçu : ${humanSize(actualSize)}`);
+
+        // Envoyer selon le type
+        if (choice.type === 'audio') {
+            await sock.sendMessage(jid, {
+                audio: buffer,
+                mimetype: 'audio/mpeg',
+                fileName: `${(video.title || 'audio').replace(/[^\w\s-]/g, '').substring(0, 60)}.mp3`,
+                ptt: false
+            }, { quoted: msg });
+        } else {
+            await sock.sendMessage(jid, {
+                video: buffer,
+                mimetype: 'video/mp4',
+                caption: `🎬 *${video.title}*\n\n📦 ${choice.label} · ${humanSize(actualSize)}\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
+        }
+
+        // Supprimer le message d'attente
+        if (statusMsg) {
+            try {
+                await sock.sendMessage(jid, { delete: statusMsg.key });
+            } catch {}
+        }
+
+        try {
+            await sock.sendMessage(jid, { react: { text: '✅', key: msg.key } });
+        } catch {}
+
+        // Nettoyer le fichier côté serveur
+        setTimeout(() => {
+            const baseUrl = downloadUrl.split('/api/video/')[0];
+            const token = downloadUrl.match(/token=([a-f0-9]+)/)?.[1];
+            if (token) {
+                axios.delete(`${baseUrl}/api/video/${token}`).catch(() => {});
+            }
+        }, 5000);
+
+    } catch (err) {
+        console.error('❌ Erreur envoi fichier:', err.message);
+
+        // Fallback : envoyer le lien du site
+        const baseUrl = downloadUrl.split('/api/video/')[0];
+        const videoUrl = video.url || '';
+        const link = `${baseUrl}/video_downloader/?url=${encodeURIComponent(videoUrl)}&format=${choice.format}&quality=${choice.quality}`;
+
+        const text = `╔════════════════════════════╗\n` +
+                     `║   ⚠️  𝐄𝐫𝐫𝐞𝐮𝐫 𝐝'𝐞𝐧𝐯𝐨𝐢\n` +
+                     `╚════════════════════════════╝\n\n` +
+                     `┃  ❌  L'envoi direct a échoué\n` +
+                     `┃  💡  Utilisez le lien ci-dessous\n\n` +
+                     `🔗 ${link}\n\n` +
+                     `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
+
+        if (statusMsg) {
+            try {
+                await sock.sendMessage(jid, { text, edit: statusMsg.key });
+                return;
+            } catch {}
+        }
+
+        await sock.sendMessage(jid, { text }, { quoted: msg });
+    }
+}

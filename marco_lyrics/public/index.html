@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Marco Lyrics | MARCO-XMD</title>
+<link rel="icon" type="image/png" href="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css?v=1">
+<script>
+(function(){
+  var s = localStorage.getItem('marco-theme');
+  var d = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', s || (d ? 'dark' : 'light'));
+})();
+</script>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <div class="brand">
+      <img src="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png" alt="MARCO-XMD">
+      <div class="brand-info">
+        <h1>Marco Lyrics</h1>
+        <span>MARCO-XMD</span>
+      </div>
+    </div>
+    <div class="navbar-actions">
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-sun icon-sun"></i>
+        <i class="fas fa-moon icon-moon"></i>
+      </button>
+      <a class="nav-btn" href="/">
+        <i class="fas fa-arrow-left"></i>
+        <span>Retour</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-hero">
+    <div class="ph-icon"><i class="fas fa-music"></i></div>
+    <h2>Marco Lyrics</h2>
+    <p>Trouvez les paroles de vos chansons préférées en quelques secondes.</p>
+  </div>
+
+  <div class="card">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Nom de la chanson ou artiste..." onkeydown="if(event.key==='Enter') searchLyrics();">
+      <button id="searchBtn" onclick="searchLyrics()">
+        <i class="fas fa-search"></i> Rechercher
+      </button>
+    </div>
+    <div class="examples">
+      <span class="ex-label">Exemples :</span>
+      <button class="ex-chip" onclick="quickSearch('Hoist the Colours')">Hoist the Colours</button>
+      <button class="ex-chip" onclick="quickSearch('Dernière danse Indila')">Dernière danse</button>
+      <button class="ex-chip" onclick="quickSearch('Imagine Dragons Believer')">Believer</button>
+      <button class="ex-chip" onclick="quickSearch('Stromae Alors on danse')">Alors on danse</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Recherche des paroles en cours...</p>
+  </div>
+
+  <div class="error-box" id="errorBox">
+    <i class="fas fa-circle-exclamation"></i>
+    <p id="errorMsg">Erreur</p>
+  </div>
+
+  <div class="lyrics-result" id="lyricsResult">
+    <div class="card" style="padding: 0; overflow: hidden;">
+
+      <!-- En-tête stylisé Marco Lyrics -->
+      <div class="marco-header">
+        <div class="marco-brand">𝐌𝐚𝐫𝐜𝐨_𝐋𝐲𝐫𝐢𝐜𝐬</div>
+        <div class="marco-sub">Paroles officielles</div>
+      </div>
+
+      <!-- Infos chanson avec image réduite + texte à côté -->
+      <div class="song-header">
+        <div class="lyrics-thumb-wrap" id="lyricsThumbWrap" style="display:none;">
+          <img id="lyricsThumb" class="lyrics-thumb" alt="Miniature">
+        </div>
+        <div class="song-info">
+          <div class="song-title" id="lyricsTitle">—</div>
+          <div class="song-artist" id="lyricsArtist">—</div>
+          <div class="song-video-meta" id="lyricsVideoMeta"></div>
+          <div class="song-meta" id="lyricsMeta"></div>
+        </div>
+      </div>
+
+      <!-- Actions bien placées -->
+      <div class="lyrics-actions-bar">
+        <button class="ly-action-btn primary" onclick="copyLyrics()">
+          <i class="fas fa-copy"></i> Copier
+        </button>
+        <button class="ly-action-btn" onclick="downloadLyrics()">
+          <i class="fas fa-download"></i> Télécharger TXT
+        </button>
+        <button class="ly-action-btn wa" onclick="shareWhatsApp()">
+          <i class="fab fa-whatsapp"></i> WhatsApp
+        </button>
+      </div>
+
+      <!-- Paroles ou message "introuvable" -->
+      <div class="lyrics-content" id="lyricsContent"></div>
+
+      <!-- Pied de page stylisé -->
+      <div class="marco-footer">
+        by <strong>Marco_Project</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="steps-head"><i class="fas fa-list-check"></i> Comment utiliser</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title"><i class="fas fa-keyboard"></i> Tapez le nom</div>
+          <div class="step-text">Entrez le titre de la chanson, avec ou sans le nom de l'artiste.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title"><i class="fas fa-magnifying-glass"></i> Recherchez</div>
+          <div class="step-text">Cliquez sur <b>Rechercher</b> pour trouver les paroles.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title"><i class="fas fa-copy"></i> Copiez ou partagez</div>
+          <div class="step-text">Copiez les paroles, téléchargez-les en TXT, ou partagez-les sur WhatsApp.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  © 2026 <strong>MARCO-XMD</strong> · by Marco Project · Tous droits réservés
+</footer>
+
+<div class="toast" id="toast"></div>
+<script src="./app.js?v=1"></script>
+</body>
+</html>

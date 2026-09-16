@@ -1,5 +1,8 @@
 node_modules/
 sessions/
-tmp/
+downloads/
 *.log
-tmp/
+.env
+voice_studio/tmp/
+video_downloader/tmp/
+video_downloader/cookies.txt

@@ -1,79 +1,59 @@
-const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 
 module.exports = {
-    name: "viewonce",
-    aliases: ["v", "vv", "vo"],
-    desc: "Lit un message éphémère (view once) - image, vidéo ou audio",
-    usage: ".viewonce (en répondant à un message view once)",
-    async execute(sock, msg, args) {
+    name: 'viewonce',
+    aliases: ['vv', 'vo', 'voir'],
+    category: 'sticker',
+    desc: 'Révèle un média "vue unique"',
+    usage: '.viewonce (répondre à un view once)',
+
+    async execute(sock, msg) {
         const jid = msg.key.remoteJid;
-        let mediaBuffer = null;
-        let isVideo = false;
-        let isAudio = false;
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+        const prefix = cfg.prefix || '.';
+
+        const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+
+        if (!quoted) {
+            return sock.sendMessage(jid, {
+                text: `╔════════════════════════╗\n` +
+                      `║   👁️  𝐕𝐈𝐄𝐖 𝐎𝐍𝐂𝐄\n` +
+                      `╚════════════════════════╝\n\n` +
+                      `┃  ❌ Répondez à un message\n` +
+                      `┃  ┃  "vue unique" avec *${prefix}vv*\n\n` +
+                      `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
+        }
+
+        let viewOnce = quoted.viewOnceMessage?.message || quoted.viewOnceMessageV2?.message || quoted;
+        let mediaMsg, type;
+        if (viewOnce.imageMessage) { mediaMsg = viewOnce.imageMessage; type = 'image'; }
+        else if (viewOnce.videoMessage) { mediaMsg = viewOnce.videoMessage; type = 'video'; }
+        else if (viewOnce.audioMessage) { mediaMsg = viewOnce.audioMessage; type = 'audio'; }
+        else {
+            return sock.sendMessage(jid, { text: '❌ Ce message n\'est pas un "vue unique".' }, { quoted: msg });
+        }
+
+        await sock.sendMessage(jid, { react: { text: '⏳', key: msg.key } });
 
         try {
-            // Cas 1 : message direct viewOnceMessageV2
-            if (msg.message?.viewOnceMessageV2?.message) {
-                const vo = msg.message.viewOnceMessageV2.message;
-                if (vo.imageMessage) {
-                    mediaBuffer = await downloadMediaMessage(msg, "buffer", {});
-                } else if (vo.videoMessage) {
-                    mediaBuffer = await downloadMediaMessage(msg, "buffer", {});
-                    isVideo = true;
-                } else if (vo.audioMessage) {
-                    mediaBuffer = await downloadMediaMessage(msg, "buffer", {});
-                    isAudio = true;
-                }
-            }
-            // Cas 2 : message cité avec viewOnceMessageV2
-            else if (msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.viewOnceMessageV2?.message) {
-                const quoted = msg.message.extendedTextMessage.contextInfo.quotedMessage;
-                const vo = quoted.viewOnceMessageV2.message;
-                if (vo.imageMessage) {
-                    mediaBuffer = await downloadMediaMessage({ message: quoted }, "buffer", {});
-                } else if (vo.videoMessage) {
-                    mediaBuffer = await downloadMediaMessage({ message: quoted }, "buffer", {});
-                    isVideo = true;
-                } else if (vo.audioMessage) {
-                    mediaBuffer = await downloadMediaMessage({ message: quoted }, "buffer", {});
-                    isAudio = true;
-                }
-            }
-            // Cas 3 : message cité avec média direct (flag viewOnce)
-            else if (msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage ||
-                     msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.videoMessage ||
-                     msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.audioMessage) {
-                const quoted = msg.message.extendedTextMessage.contextInfo.quotedMessage;
-                if (quoted.imageMessage) {
-                    mediaBuffer = await downloadMediaMessage({ message: quoted }, "buffer", {});
-                } else if (quoted.videoMessage) {
-                    mediaBuffer = await downloadMediaMessage({ message: quoted }, "buffer", {});
-                    isVideo = true;
-                } else if (quoted.audioMessage) {
-                    mediaBuffer = await downloadMediaMessage({ message: quoted }, "buffer", {});
-                    isAudio = true;
-                }
-            }
+            const buffer = await downloadMediaMessage(
+                { message: { [`${type}Message`]: mediaMsg } },
+                'buffer',
+                { logger: console }
+            );
 
-            if (!mediaBuffer) {
-                return sock.sendMessage(jid, { text: "❌ Aucun message éphémère détecté. Répondez à un message view once avec .viewonce" }, { quoted: msg });
-            }
+            const caption = `👁️ *View Once révélé*\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
+            if (type === 'image') await sock.sendMessage(jid, { image: buffer, caption }, { quoted: msg });
+            else if (type === 'video') await sock.sendMessage(jid, { video: buffer, caption }, { quoted: msg });
+            else if (type === 'audio') await sock.sendMessage(jid, { audio: buffer, mimetype: 'audio/mpeg' }, { quoted: msg });
 
-            // Envoi selon le type détecté
-            if (isVideo) {
-                await sock.sendMessage(jid, { video: mediaBuffer }, { quoted: msg });
-            } else if (isAudio) {
-                await sock.sendMessage(jid, {
-                    audio: mediaBuffer,
-                    mimetype: "audio/ogg; codecs=opus",
-                    ptt: false
-                }, { quoted: msg });
-            } else {
-                await sock.sendMessage(jid, { image: mediaBuffer }, { quoted: msg });
-            }
+            await sock.sendMessage(jid, { react: { text: '✅', key: msg.key } });
         } catch (err) {
-            console.error("Erreur viewonce:", err.message);
-            await sock.sendMessage(jid, { text: "❌ Impossible de lire ce message éphémère. Il a peut-être déjà été vu ou expiré." }, { quoted: msg });
+            console.error('Erreur viewonce:', err.message);
+            await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } });
+            await sock.sendMessage(jid, { text: '❌ Erreur lors de la récupération.' }, { quoted: msg });
         }
     }
 };

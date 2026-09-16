@@ -1,19 +1,29 @@
-// plugins/roll.js
 module.exports = {
     name: 'dice',
-    aliases: ['roll', 'dé', 'jet'],
-    description: 'Lancer un dé (par défaut 6 faces)',
-    usage: '.roll [nombre de faces]',
+    aliases: ['de', 'dé', 'roll'],
+    category: 'game',
+    desc: 'Lance un dé (1-6)',
+    usage: '.dice',
 
-    async execute(sock, message, args) {
-        const jid = message.key.remoteJid;
-        let faces = parseInt(args[0]) || 6;
+    async execute(sock, msg, args) {
+        const jid = msg.key.remoteJid;
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
 
-        if (faces < 2 || faces > 100) {
-            return sock.sendMessage(jid, { text: '❌ Le nombre de faces doit être entre 2 et 100.' }, { quoted: message });
-        }
-
+        // Nombre de faces (par défaut 6)
+        const faces = Math.min(Math.max(parseInt(args[0]) || 6, 2), 100);
         const result = Math.floor(Math.random() * faces) + 1;
-        await sock.sendMessage(jid, { text: `🎲 Dé ${faces} : *${result}*` }, { quoted: message });
+
+        const emojis = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+        const diceEmoji = faces === 6 ? emojis[result - 1] : '🎲';
+
+        const text = `╔════════════════════════╗\n` +
+                     `║   🎲  𝐃𝐄́\n` +
+                     `╚════════════════════════╝\n\n` +
+                     `┃  🎯  Faces : ${faces}\n` +
+                     `┃  ${diceEmoji}  Résultat : *${result}*\n\n` +
+                     `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
+
+        await sock.sendMessage(jid, { text }, { quoted: msg });
     }
 };

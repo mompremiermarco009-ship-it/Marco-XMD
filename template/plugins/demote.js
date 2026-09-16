@@ -1,88 +1,54 @@
-// plugins/demote.js
-const { isAuthorized, normalizeNumber } = require("../utils/auth");
-const config = require("../config.json");
+const { isAuthorized, isGroupAdmin, isBotAdmin, normalizeNumber, extractTarget } = require('../utils/auth');
 
 module.exports = {
-    name: "demote",
-    aliases: ["unadmin", "removeadmin", "deladmin"],
-    description: "Rétrograder un administrateur en simple membre (admin ou owner seulement)",
-    usage: ".demote @user ou .demote <numéro>",
+    name: 'demote',
+    aliases: ['unadmin', 'removeadmin', 'deladmin'],
+    category: 'group',
+    desc: 'Rétrograde un admin en simple membre',
+    usage: '.demote @user / .demote <numéro>',
 
-    async execute(sock, message, args) {
-        const jid = message.key.remoteJid;
-        if (!jid.endsWith("@g.us")) {
-            return sock.sendMessage(jid, { text: "❌ Cette commande ne fonctionne que dans les groupes." }, { quoted: message });
+    async execute(sock, msg, args) {
+        const jid = msg.key.remoteJid;
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+
+        if (!jid.endsWith('@g.us')) {
+            return sock.sendMessage(jid, { text: '❌ Uniquement dans un groupe.' }, { quoted: msg });
         }
 
-        let target;
-        const mentions = message.message?.extendedTextMessage?.contextInfo?.mentionedJid;
-        if (mentions && mentions.length > 0) {
-            target = mentions[0];
-        } else if (args[0]) {
-            const raw = normalizeNumber(args[0]);
-            if (!raw) {
-                return sock.sendMessage(jid, { text: "❌ Numéro invalide." }, { quoted: message });
-            }
-            target = raw + "@s.whatsapp.net";
-        } else {
-            return sock.sendMessage(jid, { text: "❌ Veuillez mentionner un administrateur ou donner un numéro." }, { quoted: message });
+        const target = extractTarget(msg, args);
+        if (!target) {
+            return sock.sendMessage(jid, { text: '❌ Mentionnez ou donnez un numéro.' }, { quoted: msg });
         }
+
+        const senderJid = msg.key.participant || msg.key.remoteJid;
+        const senderAdmin = await isGroupAdmin(sock, jid, senderJid);
+        const isOwner = isAuthorized(sock, msg, cfg);
+        const botAdmin = await isBotAdmin(sock, jid);
+
+        if (!senderAdmin && !isOwner) return sock.sendMessage(jid, { text: '❌ Vous devez être admin.' }, { quoted: msg });
+        if (!botAdmin) return sock.sendMessage(jid, { text: '❌ Je dois être admin.' }, { quoted: msg });
 
         try {
-            const metadata = await sock.groupMetadata(jid);
-            const participants = metadata.participants;
-            const sender = message.key.participant || message.key.remoteJid;
-
-            const isOwner = isAuthorized(sock, message, config);
-            let isGroupAdmin = false;
-            if (!isOwner) {
-                const senderInfo = participants.find(p => p.id === sender);
-                if (senderInfo && (senderInfo.admin === "admin" || senderInfo.admin === "superadmin")) {
-                    isGroupAdmin = true;
-                }
+            const meta = await sock.groupMetadata(jid);
+            const targetP = meta.participants.find(p => p.id === target);
+            if (!targetP) return sock.sendMessage(jid, { text: '❌ Ce membre n\'est pas dans le groupe.' }, { quoted: msg });
+            if (targetP.admin !== 'admin' && targetP.admin !== 'superadmin') {
+                return sock.sendMessage(jid, { text: '❌ Ce membre n\'est pas administrateur.' }, { quoted: msg });
             }
 
-            if (!isOwner && !isGroupAdmin) {
-                return sock.sendMessage(jid, { text: "❌ Vous devez être administrateur du groupe ou propriétaire du bot pour utiliser cette commande." }, { quoted: message });
-            }
+            await sock.groupParticipantsUpdate(jid, [target], 'demote');
 
-            // 🔧 RECHERCHE DU BOT PAR LID (prioritaire) puis par numéro
-            const botLid = sock.user?.lid;
-            const botNum = sock.user.id.split(":")[0].replace(/[^0-9]/g, '');
-            let botInfo = null;
-            if (botLid) {
-                botInfo = participants.find(p => p.id === botLid);
-            }
-            if (!botInfo) {
-                botInfo = participants.find(p => p.id.includes(botNum));
-            }
+            const text = `╔════════════════════════╗\n` +
+                         `║   ⬇️  𝐑𝐞́𝐭𝐫𝐨𝐠𝐫𝐚𝐝𝐚𝐭𝐢𝐨𝐧\n` +
+                         `╚════════════════════════╝\n\n` +
+                         `┃  ⬇️  @${normalizeNumber(target)} n'est plus admin.\n\n` +
+                         `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
 
-            if (!botInfo || (botInfo.admin !== "admin" && botInfo.admin !== "superadmin")) {
-                return sock.sendMessage(jid, { text: "❌ Le bot doit être administrateur pour rétrograder un membre." }, { quoted: message });
-            }
-
-            const targetInfo = participants.find(p => p.id === target);
-            if (!targetInfo) {
-                return sock.sendMessage(jid, { text: "❌ Ce membre ne fait pas partie du groupe." }, { quoted: message });
-            }
-
-            if (targetInfo.admin !== "admin" && targetInfo.admin !== "superadmin") {
-                return sock.sendMessage(jid, { text: "❌ Ce membre n'est pas administrateur." }, { quoted: message });
-            }
-
-            if (targetInfo.admin === "superadmin") {
-                return sock.sendMessage(jid, { text: "❌ Impossible de rétrograder le créateur du groupe." }, { quoted: message });
-            }
-
-            await sock.groupParticipantsUpdate(jid, [target], "demote");
-            await sock.sendMessage(jid, {
-                text: `✅ @${target.split("@")[0]} a été rétrogradé(e) en simple membre.`,
-                mentions: [target]
-            }, { quoted: message });
-
+            await sock.sendMessage(jid, { text, mentions: [target] }, { quoted: msg });
         } catch (err) {
-            console.error("Erreur plugin demote:", err);
-            await sock.sendMessage(jid, { text: "⚠️ Une erreur est survenue lors de la rétrogradation." }, { quoted: message });
+            console.error('Erreur demote:', err.message);
+            await sock.sendMessage(jid, { text: '⚠️ Erreur lors de la rétrogradation.' }, { quoted: msg });
         }
     }
 };

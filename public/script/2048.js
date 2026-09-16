@@ -1,53 +1,110 @@
 export default function init2048(container, controlsContainer) {
-    container.innerHTML = '<div id="grid2048" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; background:#bbada0; padding:8px; border-radius:10px; max-width:300px; margin:0 auto; touch-action:none;"></div><div id="score2048" style="text-align:center; font-weight:bold; margin-top:6px;">Score: 0</div>';
-    controlsContainer.innerHTML = '<button id="restart2048" style="padding:10px; width:100%; border-radius:10px; background:var(--primary,#3b82f6); color:#fff; border:none; font-weight:bold;">🔄 Nouvelle partie</button>';
-    let grid = Array.from({length:4}, () => Array(4).fill(0));
-    let score = 0;
-    function drawGrid() {
-        const container = document.getElementById('grid2048');
-        container.innerHTML = '';
-        grid.flat().forEach(val => {
-            const cell = document.createElement('div');
-            cell.style.aspectRatio = '1';
-            cell.style.background = val ? '#eee4da' : '#cdc1b4';
-            cell.style.display = 'flex'; cell.style.alignItems = 'center'; cell.style.justifyContent = 'center';
-            cell.style.fontWeight = 'bold'; cell.style.fontSize = '24px'; cell.style.borderRadius = '6px';
-            cell.textContent = val || '';
-            container.appendChild(cell);
-        });
-        document.getElementById('score2048').textContent = `Score: ${score}`;
+    container.innerHTML = `
+        <div id="g2048Score" style="text-align:center; margin-bottom:12px; font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--text); font-weight:700;">Score: 0 · Meilleur: 0</div>
+        <div id="g2048Board" style="display:grid; grid-template-columns:repeat(4, 75px); grid-template-rows:repeat(4, 75px); gap:8px; justify-content:center; background:var(--surface-alt); padding:8px; border-radius:14px; touch-action:none; user-select:none;"></div>
+    `;
+    controlsContainer.innerHTML = `<button id="g2048Restart" style="margin-top:12px; padding:10px; width:100%; border-radius:10px; background:var(--surface-alt); color:var(--text); border:1px solid var(--border); font-weight:700; cursor:pointer;">🔄 Nouvelle partie</button>`;
+
+    let grid, score, best = parseInt(localStorage.getItem('2048_best') || '0');
+
+    const COLORS = {
+        2: '#eee4da', 4: '#ede0c8', 8: '#f2b179', 16: '#f59563',
+        32: '#f67c5f', 64: '#f65e3b', 128: '#edcf72', 256: '#edcc61',
+        512: '#edc850', 1024: '#edc53f', 2048: '#edc22e'
+    };
+
+    function reset() {
+        grid = Array.from({ length: 4 }, () => Array(4).fill(0));
+        score = 0;
+        spawn(); spawn();
+        draw();
     }
+
     function spawn() {
-        let empty = []; grid.forEach((r,i) => r.forEach((c,j) => { if (!c) empty.push([i,j]); }));
-        if (empty.length) { const [i,j] = empty[Math.floor(Math.random()*empty.length)]; grid[i][j] = Math.random()<0.9?2:4; }
+        const empty = [];
+        grid.forEach((r, i) => r.forEach((c, j) => { if (!c) empty.push([i, j]); }));
+        if (!empty.length) return;
+        const [i, j] = empty[Math.floor(Math.random() * empty.length)];
+        grid[i][j] = Math.random() < 0.9 ? 2 : 4;
     }
+
+    function draw() {
+        const b = document.getElementById('g2048Board');
+        b.innerHTML = '';
+        grid.forEach(row => {
+            row.forEach(val => {
+                const cell = document.createElement('div');
+                const bg = val ? (COLORS[val] || '#3c3a32') : 'var(--surface)';
+                const fg = val >= 8 ? '#fff' : '#776e65';
+                cell.style.cssText = `
+                    background:${bg};
+                    color:${fg};
+                    border-radius:10px;
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:${val >= 1024 ? '1.4rem' : val >= 128 ? '1.8rem' : '2.2rem'};
+                    font-weight:900;
+                    transition:background 0.15s;
+                `;
+                cell.textContent = val || '';
+                b.appendChild(cell);
+            });
+        });
+        document.getElementById('g2048Score').textContent = `Score: ${score} · Meilleur: ${best}`;
+    }
+
     function move(dir) {
-        let moved = false;
-        const rotate = (g, times) => { let n = g.map(r=>[...r]); for (let t=0; t<times; t++) n = n[0].map((_,i) => n.map(r=>r[i]).reverse()); return n; };
-        let work = rotate(grid, dir);
-        for (let r=0; r<4; r++) {
-            let row = work[r].filter(v=>v);
-            for (let i=0; i<row.length-1; i++) if (row[i]===row[i+1]) { row[i]*=2; score+=row[i]; row.splice(i+1,1); row.push(0); moved=true; }
-            while (row.length<4) row.push(0);
-            if (row.some((v,i)=>v!==work[r][i])) moved = true;
-            work[r] = row;
+        const old = JSON.stringify(grid);
+        let rotated = grid.map(r => [...r]);
+        for (let t = 0; t < dir; t++) {
+            rotated = rotated[0].map((_, i) => rotated.map(r => r[i]).reverse());
         }
-        if (moved) { grid = rotate(work, (4-dir)%4); spawn(); drawGrid(); }
+        for (let r = 0; r < 4; r++) {
+            let row = rotated[r].filter(v => v);
+            for (let i = 0; i < row.length - 1; i++) {
+                if (row[i] === row[i + 1]) {
+                    row[i] *= 2;
+                    score += row[i];
+                    row.splice(i + 1, 1);
+                }
+            }
+            while (row.length < 4) row.push(0);
+            rotated[r] = row;
+        }
+        for (let t = 0; t < (4 - dir) % 4; t++) {
+            rotated = rotated[0].map((_, i) => rotated.map(r => r[i]).reverse());
+        }
+        grid = rotated;
+        if (JSON.stringify(grid) !== old) {
+            spawn();
+            if (score > best) { best = score; localStorage.setItem('2048_best', best); }
+            draw();
+        }
     }
-    function handleKey(e) {
-        const map = { ArrowUp:3, ArrowDown:1, ArrowLeft:2, ArrowRight:0 };
-        if (e.key in map) { e.preventDefault(); move(map[e.key]); }
+
+    // Swipe
+    let sx = 0, sy = 0;
+    const board = document.getElementById('g2048Board');
+    board.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    board.addEventListener('touchend', (e) => {
+        const dx = e.changedTouches[0].clientX - sx;
+        const dy = e.changedTouches[0].clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 25) return;
+        if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 1 : 3);
+        else move(dy > 0 ? 2 : 0);
+    }, { passive: true });
+
+    function onKey(e) {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); move(3); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); move(1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); move(0); }
+        else if (e.key === 'ArrowDown') { e.preventDefault(); move(2); }
     }
-    let touchStart = null;
-    container.addEventListener('touchstart', e => { touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; });
-    container.addEventListener('touchend', e => {
-        if (!touchStart) return;
-        const dx = e.changedTouches[0].clientX - touchStart.x, dy = e.changedTouches[0].clientY - touchStart.y;
-        if (Math.abs(dx) > Math.abs(dy)) move(dx>0?0:2); else move(dy>0?1:3);
-        touchStart = null;
-    });
-    document.addEventListener('keydown', handleKey);
-    document.getElementById('restart2048').addEventListener('click', () => { grid = Array.from({length:4},()=>Array(4).fill(0)); score=0; spawn(); spawn(); drawGrid(); });
-    spawn(); spawn(); drawGrid();
-    return { stop() { document.removeEventListener('keydown', handleKey); } };
+    document.addEventListener('keydown', onKey);
+
+    document.getElementById('g2048Restart').addEventListener('click', reset);
+    reset();
+
+    return {
+        stop() { document.removeEventListener('keydown', onKey); }
+    };
 }

@@ -1,44 +1,38 @@
-async function closeGroup(sock, msg, args) {
-    const jid = msg.key.remoteJid;
-
-    if (!jid.endsWith("@g.us")) return;
-
-    try {
-        const groupMetadata = await sock.groupMetadata(jid);
-        const participants = groupMetadata.participants;
-
-        // --- DETECTION CORRECTE DU BOT ET DE L'ADMIN ---
-        const botId = sock.user.id.includes(':') ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : sock.user.id;
-        const sender = msg.key.participant || msg.key.remoteJid;
-
-        const isBotAdmin = participants.find(p => p.id === botId)?.admin !== null;
-        const isSenderAdmin = participants.find(p => p.id === sender)?.admin !== null;
-
-        // --- VERIFICATIONS ---
-        if (!isBotAdmin) {
-            return sock.sendMessage(jid, { text: "❌ Erreur : Je dois être **admin** du groupe pour modifier les paramètres." }, { quoted: msg });
-        }
-
-        if (!isSenderAdmin) {
-            return sock.sendMessage(jid, { text: "❌ Seuls les **administrateurs** peuvent utiliser cette commande." }, { quoted: msg });
-        }
-
-        // --- ACTION REELLE ---
-        await sock.groupSettingUpdate(jid, "announcement");
-
-        await sock.sendMessage(jid, {
-            text: "🔒 **GROUPE FERMÉ**\nSeuls les administrateurs peuvent désormais envoyer des messages.\n > Powered by ©Mr Marco"
-        }, { quoted: msg });
-
-    } catch (e) {
-        console.error("❌ Erreur Close Group:", e);
-        await sock.sendMessage(jid, { text: "❌ Impossible de fermer le groupe. Vérifiez mes permissions." }, { quoted: msg });
-    }
-}
+const { isAuthorized, isGroupAdmin, isBotAdmin } = require('../utils/auth');
 
 module.exports = {
-    name: "close",
-    alias: ["lock", "fermer"],
-    category: "admin",
-    execute: closeGroup
+    name: 'close',
+    aliases: ['fermer', 'mute', 'lock'],
+    category: 'group',
+    desc: 'Ferme le groupe (seuls les admins parlent)',
+    usage: '.close',
+
+    async execute(sock, msg) {
+        const jid = msg.key.remoteJid;
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+
+        if (!jid.endsWith('@g.us')) return;
+
+        const senderJid = msg.key.participant || msg.key.remoteJid;
+        const senderAdmin = await isGroupAdmin(sock, jid, senderJid);
+        const isOwner = isAuthorized(sock, msg, cfg);
+        const botAdmin = await isBotAdmin(sock, jid);
+
+        if (!senderAdmin && !isOwner) return sock.sendMessage(jid, { text: '❌ Vous devez être admin.' }, { quoted: msg });
+        if (!botAdmin) return sock.sendMessage(jid, { text: '❌ Je dois être admin.' }, { quoted: msg });
+
+        try {
+            await sock.groupSettingUpdate(jid, 'announcement');
+            const text = `╔════════════════════════╗\n` +
+                         `║   🔒  𝐆𝐑𝐎𝐔𝐏𝐄 𝐅𝐄𝐑𝐌𝐄́\n` +
+                         `╚════════════════════════╝\n\n` +
+                         `┃  🔒  Seuls les admins peuvent parler.\n\n` +
+                         `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
+            await sock.sendMessage(jid, { text }, { quoted: msg });
+        } catch (err) {
+            console.error('Erreur close:', err.message);
+            await sock.sendMessage(jid, { text: '⚠️ Erreur.' }, { quoted: msg });
+        }
+    }
 };

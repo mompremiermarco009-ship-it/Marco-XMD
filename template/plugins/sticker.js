@@ -1,64 +1,65 @@
-const { downloadContentFromMessage } = require("gifted-baileys");
-const sharp = require("sharp");
-const config = require("../config.json");
+const sharp = require('sharp');
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 module.exports = {
-    name: "sticker",
-    alias: ["s", "stiker"],
-    category: "general",
-    desc: "Convertit une image en sticker MARCO-XMD",
-    async execute(sock, msg, args) {
+    name: 'sticker',
+    aliases: ['s', 'stiker', 'stick'],
+    category: 'sticker',
+    desc: 'Convertit une image en sticker WebP',
+    usage: '.sticker (répondre à une image)',
+
+    async execute(sock, msg) {
         const jid = msg.key.remoteJid;
-        
-        let messageType = Object.keys(msg.message)[0];
-        let quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-        let mime = "";
-        let message = null;
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+        const prefix = cfg.prefix || '.';
 
-        if (msg.message?.imageMessage) {
-            message = msg.message.imageMessage;
-            mime = "image";
-        } else if (quoted?.imageMessage) {
-            message = quoted.imageMessage;
-            mime = "image";
-        } else if (msg.message?.videoMessage) {
-            message = msg.message.videoMessage;
-            mime = "video";
-        } else if (quoted?.videoMessage) {
-            message = quoted.videoMessage;
-            mime = "video";
+        // Trouver l'image (directe ou citée)
+        const m = msg.message;
+        const quoted = m?.extendedTextMessage?.contextInfo?.quotedMessage;
+        let imgMsg = null;
+
+        if (m?.imageMessage) imgMsg = m.imageMessage;
+        else if (quoted?.imageMessage) imgMsg = quoted.imageMessage;
+
+        if (!imgMsg) {
+            return sock.sendMessage(jid, {
+                text: `╔════════════════════════╗\n` +
+                      `║   🎨  𝐒𝐓𝐈𝐂𝐊𝐄𝐑\n` +
+                      `╚════════════════════════╝\n\n` +
+                      `┃  ❌ Envoyez une image avec\n` +
+                      `┃  ┃  la légende *${prefix}sticker*\n` +
+                      `┃  ┃  ou répondez à une image.\n\n` +
+                      `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
         }
 
-        if (!message) {
-            return sock.sendMessage(jid, { text: `❌ Veuillez envoyer ou répondre à une image ou une vidéo courte avec *${config.prefix}sticker*` }, { quoted: msg });
-        }
+        await sock.sendMessage(jid, { react: { text: '⏳', key: msg.key } });
 
         try {
-            await sock.sendMessage(jid, { text: "⏳ *MARCO-XMD* : Conversion en sticker..." }, { quoted: msg });
-
-            const stream = await downloadContentFromMessage(message, mime);
+            const stream = await downloadContentFromMessage(imgMsg, 'image');
             let buffer = Buffer.from([]);
-            for await (const chunk of stream) {
-                buffer = Buffer.concat([buffer, chunk]);
-            }
+            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
 
-            const stickerBuffer = await sharp(buffer)
-                .resize(512, 512, {
-                    fit: 'contain',
-                    background: { r: 0, g: 0, b: 0, alpha: 0 }
-                })
-                .webp()
+            // Convertir en WebP 512x512
+            const webp = await sharp(buffer)
+                .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+                .webp({ quality: 90 })
                 .toBuffer();
 
             await sock.sendMessage(jid, {
-                sticker: stickerBuffer,
-                packname: config.botName,
-                author: config.ownerName
+                sticker: webp,
+                packname: cfg.botName || 'MARCO-XMD',
+                author: owner
             }, { quoted: msg });
 
+            await sock.sendMessage(jid, { react: { text: '✅', key: msg.key } });
         } catch (err) {
-            console.error("Erreur sticker:", err);
-            await sock.sendMessage(jid, { text: `❌ Erreur lors de la création du sticker.\n\n_Détails: ${err.message}_` }, { quoted: msg });
+            console.error('Erreur sticker:', err.message);
+            await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } });
+            await sock.sendMessage(jid, {
+                text: `❌ Erreur lors de la création du sticker.\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
         }
     }
 };

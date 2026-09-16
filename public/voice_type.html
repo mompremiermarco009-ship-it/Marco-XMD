@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Voice Type | MARCO-XMD</title>
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            const saved = localStorage.getItem('marco-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
+        })();
+    </script>
+    <style>
+        :root {
+            --primary: #0d6efd; --primary-light: #3b82f6; --primary-dark: #0a4db3;
+            --bg: #f8fafc; --surface: #ffffff; --surface-alt: #f1f5f9;
+            --text: #0f172a; --text-soft: #475569; --text-muted: #94a3b8;
+            --border: #e2e8f0; --border-hover: #cbd5e1;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --radius: 12px; --radius-sm: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 40px rgba(13,110,253,0.10);
+        }
+        [data-theme="dark"] {
+            --primary: #3b82f6; --primary-light: #60a5fa; --primary-dark: #1d4ed8;
+            --bg: #0a0e1a; --surface: #111827; --surface-alt: #1e293b;
+            --text: #f1f5f9; --text-soft: #cbd5e1; --text-muted: #64748b;
+            --border: #1e293b; --border-hover: #334155;
+            --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.3);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 60px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .navbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: var(--shadow);
+        }
+        .navbar-inner {
+            max-width: 900px; margin: 0 auto;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 16px; flex-wrap: wrap;
+        }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand img { width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border); }
+        .brand-info h1 { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.3px; }
+        .brand-info span { font-size: 0.78rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .navbar-actions { display: flex; gap: 8px; align-items: center; }
+        .nav-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 9px 16px; border-radius: var(--radius-sm);
+            font-size: 0.86rem; font-weight: 600;
+            text-decoration: none; cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--surface); color: var(--text-soft);
+            transition: all 0.15s;
+        }
+        .nav-btn:hover { background: var(--surface-alt); border-color: var(--border-hover); color: var(--text); }
+        .theme-toggle {
+            width: 40px; height: 40px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--surface);
+            color: var(--text-soft); cursor: pointer; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden; transition: 0.2s;
+        }
+        .theme-toggle:hover { background: var(--surface-alt); color: var(--primary); }
+        .theme-toggle .icon-sun, .theme-toggle .icon-moon {
+            position: absolute; transition: transform 0.4s, opacity 0.3s;
+        }
+        [data-theme="light"] .theme-toggle .icon-sun { opacity: 0; transform: rotate(180deg) scale(0); }
+        [data-theme="light"] .theme-toggle .icon-moon { opacity: 1; transform: rotate(0) scale(1); }
+        [data-theme="dark"] .theme-toggle .icon-sun { opacity: 1; transform: rotate(0) scale(1); }
+        [data-theme="dark"] .theme-toggle .icon-moon { opacity: 0; transform: rotate(-180deg) scale(0); }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .coming-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 50px 35px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        .coming-card::before {
+            content: '';
+            position: absolute;
+            top: -50%; right: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 30%, rgba(13,110,253,0.06) 0%, transparent 40%),
+                        radial-gradient(circle at 70% 70%, rgba(59,130,246,0.04) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        .coming-icon {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #fff;
+            margin-bottom: 24px;
+            box-shadow: 0 15px 40px rgba(13,110,253,0.35);
+            position: relative;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .coming-icon::after {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: 2px dashed rgba(13,110,253,0.3);
+            animation: rotate 20s linear infinite;
+        }
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        .badge-coming {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--warning);
+            color: #fff;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        .badge-coming i {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        h1 {
+            font-size: clamp(1.6rem, 4vw, 2.2rem);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 14px;
+            color: var(--text);
+        }
+        .subtitle {
+            color: var(--text-soft);
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 500px;
+            margin: 0 auto 30px;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 14px;
+            background: var(--surface-alt);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+        .feature-item i {
+            color: var(--primary);
+            font-size: 1rem;
+            margin-top: 2px;
+        }
+        .feature-item span {
+            font-size: 0.85rem;
+            color: var(--text-soft);
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 8px 20px rgba(13,110,253,0.3);
+            font-family: inherit;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(13,110,253,0.4);
+        }
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+            margin-top: 12px;
+            font-family: inherit;
+        }
+        .btn-outline:hover {
+            background: var(--surface-alt);
+            border-color: var(--border-hover);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 26px 20px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+        .footer strong { color: var(--text-soft); }
+
+        @media (max-width: 640px) {
+            .navbar { padding: 12px 16px; }
+            .nav-btn { padding: 8px 12px; font-size: 0.8rem; }
+            .nav-btn span { display: none; }
+            .coming-card { padding: 35px 22px; }
+            .coming-icon { width: 80px; height: 80px; font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <div class="brand">
+            <img src="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png" alt="MARCO-XMD">
+            <div class="brand-info">
+                <h1>Voice Type</h1>
+                <span>MARCO-XMD</span>
+            </div>
+        </div>
+        <div class="navbar-actions">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <i class="fas fa-sun icon-sun"></i>
+                <i class="fas fa-moon icon-moon"></i>
+            </button>
+            <a class="nav-btn" href="/">
+                <i class="fas fa-arrow-left"></i>
+                <span>Retour</span>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="coming-card">
+        <div class="coming-icon">
+            <i class="fas fa-microphone-lines"></i>
+        </div>
+        <div class="badge-coming">
+            <i class="fas fa-clock"></i> Bientôt disponible
+        </div>
+        <h1>Voice Type arrive bientôt</h1>
+        <p class="subtitle">
+            La fonctionnalité de dictée vocale est en cours de développement.
+            Nous travaillons pour vous offrir une expérience de transcription précise et rapide.
+        </p>
+
+        <div class="features-list">
+            <div class="feature-item">
+                <i class="fas fa-language"></i>
+                <span>Support multilingue</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-bolt"></i>
+                <span>Transcription instantanée</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-microphone"></i>
+                <span>Reconnaissance précise</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-share-nodes"></i>
+                <span>Partage direct</span>
+            </div>
+        </div>
+
+        <p style="color: var(--text-soft); font-size: 0.9rem; margin-bottom: 20px;">
+            En attendant, découvrez notre nouveau studio vocal qui convertit votre texte en voix naturelle.
+        </p>
+
+        <a href="/voice_studio.html" class="btn-primary">
+            <i class="fas fa-wand-magic-sparkles"></i> Essayer MarcoVoice Studio
+        </a>
+        <br>
+        <a href="/" class="btn-outline">
+            <i class="fas fa-arrow-left"></i> Retour à l'accueil
+        </a>
+    </div>
+</div>
+
+<footer class="footer">
+    © 2026 <strong>MARCO-XMD</strong> · by Marco Project · Tous droits réservés
+</footer>
+
+<script>
+function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('marco-theme', next);
+}
+</script>
+
+</body>
+</html>

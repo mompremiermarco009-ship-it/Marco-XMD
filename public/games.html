@@ -2,141 +2,752 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MARCO-XMD - Jeux</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MARCO-XMD | Espace de Jeux</title>
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --neon: #00d4ff;
-            --neon-dim: #0077b6;
-            --bg: #0d0d0d;
-            --text: #e0e0e0;
-            --border: rgba(0, 212, 255, 0.2);
-            --card-bg: rgba(20, 20, 30, 0.9);
-            --metal-dark: #1c1c1c;
+            --neon: #00aaff;
+            --neon-bright: #00d4ff;
+            --neon-dim: #004d99;
+            --bg: #000308;
+            --text: #d0e8ff;
+            --text-dim: #6a8aa8;
+            --border: rgba(0, 170, 255, 0.35);
+            --card-bg: rgba(2, 8, 20, 0.85);
+            --metal-dark: #04070d;
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --success: #00ffaa;
+            --pink: #ff00ff;
+            --purple: #9d4edd;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
         body {
             font-family: 'Rajdhani', sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
-            background-image: 
-                radial-gradient(circle at 20% 20%, rgba(0,212,255,0.03) 0%, transparent 40%),
-                radial-gradient(circle at 80% 80%, rgba(0,212,255,0.05) 0%, transparent 40%),
-                linear-gradient(45deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%),
-                linear-gradient(-45deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%);
-            background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+            padding-bottom: 80px;
+            position: relative;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 15% 15%, rgba(0,170,255,0.15) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(157,78,221,0.10) 0%, transparent 45%),
+                linear-gradient(45deg, transparent 24%, rgba(0,170,255,0.03) 25%, rgba(0,170,255,0.03) 26%, transparent 27%, transparent 74%, rgba(0,170,255,0.03) 75%, rgba(0,170,255,0.03) 76%, transparent 77%),
+                linear-gradient(-45deg, transparent 24%, rgba(0,170,255,0.03) 25%, rgba(0,170,255,0.03) 26%, transparent 27%, transparent 74%, rgba(0,170,255,0.03) 75%, rgba(0,170,255,0.03) 76%, transparent 77%);
+            background-size: 100% 100%, 100% 100%, 80px 80px, 80px 80px;
         }
+        .main-container { max-width: 1100px; margin: 0 auto; padding: 20px 20px 40px; position: relative; z-index: 1; }
+
+        /* ============ TOP BAR ============ */
         .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 22px;
             background: var(--metal-dark);
-            border-bottom: 2px solid var(--neon);
-            padding: 18px 32px;
+            border: 1.5px solid var(--neon);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+            margin-bottom: 28px;
+            box-shadow: 0 0 25px rgba(0,170,255,0.25), inset 0 0 20px rgba(0,170,255,0.05);
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+        .top-bar .tb-left {
             display: flex;
             align-items: center;
-            gap: 16px;
-            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+            gap: 14px;
         }
-        .back-link { color: var(--neon); text-decoration: none; font-family: 'Share Tech Mono', monospace; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-        .top-title { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900; color: var(--neon); text-shadow: 0 0 10px var(--neon); }
-        .content { max-width: 1100px; margin: 0 auto; padding: 32px; }
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%);
-            padding: 28px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        .top-bar .tb-left img {
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-bright);
+            box-shadow: 0 0 15px var(--neon);
         }
-        .card-title { font-family: 'Orbitron', sans-serif; font-size: 24px; color: var(--neon); text-shadow: 0 0 10px var(--neon-dim); margin-bottom: 20px; }
+        .top-bar .tb-left .tb-info h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.15rem;
+            color: var(--neon-bright);
+            text-shadow: 0 0 10px var(--neon);
+            letter-spacing: 2px;
+            line-height: 1.1;
+        }
+        .top-bar .tb-left .tb-info p {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            letter-spacing: 1.5px;
+            margin-top: 2px;
+        }
+        .top-bar .tb-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: transparent;
+            border: 1.5px solid var(--neon);
+            color: var(--neon-bright);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+            transition: 0.3s;
+            text-decoration: none;
+        }
+        .btn-back:hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon);
+        }
+
+        /* ============ INTRO ============ */
+        .hero {
+            text-align: center;
+            margin-bottom: 35px;
+            padding: 30px 20px;
+        }
+        .hero .hero-icon {
+            font-size: 3rem;
+            color: var(--neon-bright);
+            text-shadow: 0 0 20px var(--neon), 0 0 40px rgba(0,170,255,0.5);
+            margin-bottom: 14px;
+            animation: heroFloat 3s ease-in-out infinite;
+            display: inline-block;
+        }
+        @keyframes heroFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .hero h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            font-weight: 900;
+            color: var(--neon-bright);
+            text-shadow: 0 0 15px var(--neon), 0 0 30px rgba(0,170,255,0.5);
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+        }
+        .hero p {
+            color: var(--text-dim);
+            font-size: 1.05rem;
+            max-width: 650px;
+            margin: 0 auto;
+            line-height: 1.6;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .hero .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .hero .hero-stats .hs-item {
+            text-align: center;
+        }
+        .hero .hero-stats .hs-item .hs-val {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--neon-bright);
+            text-shadow: 0 0 12px var(--neon);
+        }
+        .hero .hero-stats .hs-item .hs-lbl {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        /* ============ SECTION TITLE ============ */
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-bright);
+            margin: 40px 0 18px;
+            font-size: 1.15rem;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--neon);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .section-title::before {
+            content: '';
+            width: 25px; height: 2px;
+            background: var(--neon-bright);
+            box-shadow: 0 0 10px var(--neon);
+        }
+        .section-title::after {
+            content: '';
+            flex: 1; height: 1px;
+            background: linear-gradient(90deg, var(--neon), transparent);
+        }
+        .section-title i {
+            color: var(--neon-bright);
+            font-size: 1rem;
+            text-shadow: 0 0 12px var(--neon);
+        }
+
+        /* ============ GAME GRID ============ */
         .game-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 18px;
         }
         .game-card {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid var(--border);
-            clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-            aspect-ratio: 1/1;
+            background: var(--card-bg);
+            border: 1.5px solid var(--border);
+            clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+            padding: 22px 18px;
+            cursor: pointer;
+            transition: 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            position: relative;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
             gap: 10px;
-            cursor: pointer;
+            min-height: 180px;
+        }
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent, var(--gc-color, var(--neon)), transparent, var(--gc-color, var(--neon)), transparent);
+            animation: rotate 6s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 0;
+        }
+        .game-card:hover::before { opacity: 0.08; }
+        @keyframes rotate { to { transform: rotate(360deg); } }
+        .game-card > * { position: relative; z-index: 1; }
+
+        .game-card .gc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .game-card .gc-icon {
+            width: 52px; height: 52px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,170,255,0.08);
+            border: 1.5px solid var(--gc-color, var(--neon));
+            clip-path: polygon(20% 0, 80% 0, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0 80%, 0 20%);
             transition: 0.3s;
+            box-shadow: 0 0 12px var(--gc-color, var(--neon));
+        }
+        .game-card .gc-icon i {
+            font-size: 1.5rem;
+            color: var(--gc-color, var(--neon-bright));
+            text-shadow: 0 0 12px var(--gc-color, var(--neon));
+        }
+        .game-card:hover .gc-icon {
+            transform: scale(1.1) rotate(-5deg);
+        }
+        .game-card .gc-badge {
             font-family: 'Share Tech Mono', monospace;
-            font-weight: 600;
+            font-size: 0.6rem;
+            padding: 3px 9px;
+            letter-spacing: 1px;
             text-transform: uppercase;
+            border: 1px solid var(--gc-color, var(--neon));
+            color: var(--gc-color, var(--neon-bright));
+            background: rgba(0,0,0,0.4);
+            clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+            white-space: nowrap;
+        }
+        .game-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--text);
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 8px rgba(0,170,255,0.3);
+            margin-top: 4px;
+        }
+        .game-card p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+        .game-card .gc-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+        .game-card .gc-footer .gc-play {
+            color: var(--gc-color, var(--neon-bright));
+            text-shadow: 0 0 8px var(--gc-color, var(--neon));
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+        }
+        .game-card:hover .gc-footer .gc-play {
+            letter-spacing: 2px;
         }
         .game-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--neon);
-            box-shadow: 0 0 20px var(--neon-dim);
+            transform: translateY(-8px);
+            border-color: var(--gc-color, var(--neon-bright));
+            box-shadow: 0 0 30px var(--gc-color, var(--neon)), 0 15px 40px rgba(0,0,0,0.8);
         }
-        .game-card i { font-size: 2rem; color: var(--neon); }
+
+        /* Couleurs par catégorie */
+        .game-card.action { --gc-color: #ff6b35; }
+        .game-card.puzzle { --gc-color: #00d4ff; }
+        .game-card.arcade { --gc-color: #ff00ff; }
+        .game-card.strategy { --gc-color: #00ffaa; }
+        .game-card.tools { --gc-color: #ffa502; }
+
+        /* ============ MODAL JEU ============ */
         .modal {
-            display: none; position: fixed; top:0;left:0;width:100%;height:100%;
-            background: rgba(0,0,0,0.85); z-index: 1000;
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92);
             justify-content: center; align-items: center;
-            backdrop-filter: blur(8px);
+            z-index: 1000; backdrop-filter: blur(8px);
+            padding: 20px;
         }
         .modal.active { display: flex; }
         .modal-content {
             background: var(--metal-dark);
             border: 2px solid var(--neon);
             clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-            padding: 25px;
-            width: 95%;
-            max-width: 500px;
-            position: relative;
+            padding: 22px;
+            width: 100%; max-width: 520px;
+            position: relative; text-align: center;
+            box-shadow: 0 0 60px rgba(0,170,255,0.4);
             max-height: 90vh;
             overflow-y: auto;
-            text-align: center;
         }
-        .modal-close {
-            position: absolute; top: 10px; right: 15px;
-            font-size: 2rem; color: var(--neon);
-            cursor: pointer; background: none; border: none;
+        .modal-content .mc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-content .mc-header h3 {
+            color: var(--neon-bright);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--neon);
+        }
+        .close-btn {
+            font-size: 1.8rem;
+            color: var(--neon-bright);
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: 0.2s;
+            line-height: 1;
+        }
+        .close-btn:hover { text-shadow: 0 0 15px var(--neon); transform: rotate(90deg); }
+
+        /* ============ INFO PANEL ============ */
+        .info-panel {
+            background: var(--card-bg);
+            border: 1.5px solid var(--border);
+            clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%);
+            padding: 24px;
+            margin-top: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,170,255,0.05);
+            position: relative;
+        }
+        .info-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 15px; height: 15px;
+            background: var(--neon);
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+            box-shadow: 0 0 12px var(--neon);
+        }
+        .info-panel h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--neon-bright);
+            margin-bottom: 14px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 8px var(--neon);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .info-panel ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 10px;
+        }
+        .info-panel ul li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.95rem;
+            color: var(--text);
+            line-height: 1.5;
+            padding: 8px 12px;
+            background: rgba(0,170,255,0.04);
+            border-left: 3px solid var(--neon);
+        }
+        .info-panel ul li i {
+            color: var(--neon-bright);
+            margin-top: 3px;
+            font-size: 0.85rem;
+            text-shadow: 0 0 8px var(--neon);
+            min-width: 14px;
+        }
+        .info-panel ul li strong {
+            color: var(--neon-bright);
+        }
+
+        /* ============ FOOTER ============ */
+        .footer {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            text-align: center; padding: 10px;
+            background: rgba(0,3,8,0.95);
+            border-top: 1px solid var(--neon);
+            color: #4a6a88;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
+            letter-spacing: 1.5px;
+            z-index: 10;
+            box-shadow: 0 -2px 20px rgba(0,170,255,0.15);
+        }
+
+        @media (max-width: 600px) {
+            .game-grid { grid-template-columns: 1fr; }
+            .top-bar { flex-direction: column; text-align: center; }
+            .hero-stats { gap: 20px; }
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ============ ANIMATIONS COMMUNES ============ */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Styles communs pour les canvas de jeux */
+        canvas { max-width: 100%; height: auto; }
+
+        /* Style pour les boutons de jeu universels */
+        .game-btn {
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.1s;
+        }
+        .game-btn:active { transform: scale(0.96); }
+
+        /* Améliorer le modal pour les jeux */
+        .modal-content {
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        /* Rendre les jeux plus agréables sur mobile */
+        @media (max-width: 480px) {
+            canvas { border-radius: 10px !important; }
         }
     </style>
 </head>
 <body>
-<div class="top-bar">
-    <a class="back-link" href="/"><i class="fas fa-arrow-left"></i> Retour</a>
-    <div class="top-title">🕹️ Mini-Jeux MARCO-XMD</div>
-</div>
-<div class="content">
-    <div class="card">
-        <div class="card-title">/ games /</div>
-        <div class="game-grid">
-            <div class="game-card" onclick="openGame('snake')"><i class="fas fa-snake"></i><span>Snake</span></div>
-            <div class="game-card" onclick="openGame('tictactoe')"><i class="fas fa-times-circle"></i><span>Morpion</span></div>
-            <div class="game-card" onclick="openGame('runner')"><i class="fas fa-running"></i><span>Runner</span></div>
-            <div class="game-card" onclick="openGame('flappy')"><i class="fas fa-feather-alt"></i><span>Flappy</span></div>
-            <div class="game-card" onclick="openGame('pong')"><i class="fas fa-table-tennis"></i><span>Pong</span></div>
-            <div class="game-card" onclick="openGame('2048')"><i class="fas fa-th"></i><span>2048</span></div>
-            <div class="game-card" onclick="openGame('invaders')"><i class="fas fa-rocket"></i><span>Invaders</span></div>
-            <div class="game-card" onclick="openGame('tetris')"><i class="fas fa-cubes"></i><span>Tetris</span></div>
-            <div class="game-card" onclick="openGame('whack')"><i class="fas fa-hammer"></i><span>Whack</span></div>
-            <div class="game-card" onclick="openGame('quizgame')"><i class="fas fa-question-circle"></i><span>Quiz</span></div>
-            <div class="game-card" onclick="openGame('calc')"><i class="fas fa-calculator"></i><span>Calcul</span></div>
-            <div class="game-card" onclick="openGame('memory')"><i class="fas fa-brain"></i><span>Memory</span></div>
-            <div class="game-card" onclick="openGame('calcgame')"><i class="fas fa-brain"></i><span>Calcul mental</span></div>
-            <div class="game-card" onclick="openGame('search')"><i class="fas fa-search"></i><span>Recherche</span></div>
+<div class="main-container">
+
+    <!-- Top bar -->
+    <div class="top-bar">
+        <div class="tb-left">
+            <img src="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png" alt="MARCO-XMD" onerror="this.style.display='none'">
+            <div class="tb-info">
+                <h1>MARCO-XMD ARCADE</h1>
+                <p>/ espace de jeux /</p>
+            </div>
+        </div>
+        <div class="tb-actions">
+            <a class="btn-back" href="/">
+                <i class="fas fa-arrow-left"></i> Accueil
+            </a>
         </div>
     </div>
+
+    <!-- Hero -->
+    <div class="hero">
+        <div class="hero-icon"><i class="fas fa-gamepad"></i></div>
+        <h2>Bienvenue dans l'Arène</h2>
+        <p>Affronte l'IA, teste ta réflexion ou défie tes amis. Tous les jeux sont gratuits, illimités et jouables directement depuis ton navigateur.</p>
+        <div class="hero-stats">
+            <div class="hs-item">
+                <div class="hs-val">14</div>
+                <div class="hs-lbl">Jeux</div>
+            </div>
+            <div class="hs-item">
+                <div class="hs-val">∞</div>
+                <div class="hs-lbl">Parties</div>
+            </div>
+            <div class="hs-item">
+                <div class="hs-val">0$</div>
+                <div class="hs-lbl">Toujours gratuit</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ JEUX D'ACTION ============ -->
+    <h2 class="section-title"><i class="fas fa-fire"></i> Jeux d'action</h2>
+    <div class="game-grid">
+        <div class="game-card action" onclick="openGame('snake')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-snake"></i></div>
+                <span class="gc-badge">Classique</span>
+            </div>
+            <h3>SNAKE</h3>
+            <p>Mange les pommes, grandis et évite de te mordre la queue. Rapide et addictif.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card action" onclick="openGame('flappy')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-feather-alt"></i></div>
+                <span class="gc-badge">Réflexes</span>
+            </div>
+            <h3>FLAPPY BIRD</h3>
+            <p>Guide ton oiseau à travers les tuyaux. Un seul faux pas et c'est fini.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card action" onclick="openGame('runner')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-running"></i></div>
+                <span class="gc-badge">Endurance</span>
+            </div>
+            <h3>RUNNER</h3>
+            <p>Cours sans fin, saute les obstacles et collecte des pièces pour battre ton record.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card action" onclick="openGame('invaders')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-rocket"></i></div>
+                <span class="gc-badge">Combat</span>
+            </div>
+            <h3>SPACE INVADERS</h3>
+            <p>Défends la Terre contre des vagues d'aliens. Tire vite et bouge malin.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ JEUX DE RÉFLEXION ============ -->
+    <h2 class="section-title"><i class="fas fa-brain"></i> Jeux de réflexion</h2>
+    <div class="game-grid">
+        <div class="game-card puzzle" onclick="openGame('tictactoe')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-times"></i></div>
+                <span class="gc-badge">Stratégie</span>
+            </div>
+            <h3>MORPION</h3>
+            <p>Affronte l'IA ou un ami au jeu classique du Morpion. 3 alignés pour gagner.</p>
+            <div class="gc-footer">
+                <span>1-2 Joueurs</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card puzzle" onclick="openGame('2048')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-th"></i></div>
+                <span class="gc-badge">Puzzle</span>
+            </div>
+            <h3>2048</h3>
+            <p>Fusionne les nombres identiques pour atteindre 2048. Simple mais redoutable.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card puzzle" onclick="openGame('memory')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-brain"></i></div>
+                <span class="gc-badge">Mémoire</span>
+            </div>
+            <h3>MEMORY</h3>
+            <p>Retourne les cartes et retrouve toutes les paires. Entraîne ta mémoire visuelle.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card puzzle" onclick="openGame('tetris')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-cubes"></i></div>
+                <span class="gc-badge">Légendaire</span>
+            </div>
+            <h3>TETRIS</h3>
+            <p>Empile les blocs et complète des lignes pour marquer un maximum de points.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ ARCADE ============ -->
+    <h2 class="section-title"><i class="fas fa-rocket"></i> Arcade & Multijoueur</h2>
+    <div class="game-grid">
+        <div class="game-card arcade" onclick="openGame('pong')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-table-tennis"></i></div>
+                <span class="gc-badge">Duel</span>
+            </div>
+            <h3>PONG</h3>
+            <p>Le tennis de table originel. Affronte l'IA ou un ami en mode 2 joueurs local.</p>
+            <div class="gc-footer">
+                <span>1-2 Joueurs</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card arcade" onclick="openGame('whack')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-hammer"></i></div>
+                <span class="gc-badge">Rapidité</span>
+            </div>
+            <h3>WHACK-A-MOLE</h3>
+            <p>Tape les taupes dès qu'elles sortent de leur trou. 30 secondes pour un max de points.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card arcade" onclick="openGame('quizgame')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-question-circle"></i></div>
+                <span class="gc-badge">Culture</span>
+            </div>
+            <h3>QUIZ</h3>
+            <p>Teste tes connaissances avec des questions variées. Le plus rapide gagne.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card arcade" onclick="openGame('calcgame')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-calculator"></i></div>
+                <span class="gc-badge">Mental</span>
+            </div>
+            <h3>CALCUL MENTAL</h3>
+            <p>Résous un maximum d'opérations en 30 secondes. 4 niveaux de difficulté.</p>
+            <div class="gc-footer">
+                <span>1 Joueur</span>
+                <span class="gc-play">JOUER <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ OUTILS ============ -->
+    <h2 class="section-title"><i class="fas fa-toolbox"></i> Outils & Utilitaires</h2>
+    <div class="game-grid">
+        <div class="game-card tools" onclick="openGame('calc')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-calculator"></i></div>
+                <span class="gc-badge">Utilitaire</span>
+            </div>
+            <h3>CALCULATRICE</h3>
+            <p>Calculatrice complète pour tous tes calculs du quotidien.</p>
+            <div class="gc-footer">
+                <span>Outil</span>
+                <span class="gc-play">OUVRIR <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+
+        <div class="game-card tools" onclick="openGame('search')">
+            <div class="gc-header">
+                <div class="gc-icon"><i class="fas fa-search"></i></div>
+                <span class="gc-badge">Recherche</span>
+            </div>
+            <h3>RECHERCHE</h3>
+            <p>Pose une question et obtiens une réponse instantanée depuis Wikipedia.</p>
+            <div class="gc-footer">
+                <span>Outil</span>
+                <span class="gc-play">OUVRIR <i class="fas fa-arrow-right"></i></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ INFO PANEL ============ -->
+    <div class="info-panel">
+        <h3><i class="fas fa-info-circle"></i> Instructions</h3>
+        <ul>
+            <li><i class="fas fa-hand-pointer"></i> <span>Clique sur une carte pour lancer le jeu instantanément.</span></li>
+            <li><i class="fas fa-keyboard"></i> <span>Utilise <strong>les flèches</strong> du clavier ou les <strong>boutons tactiles</strong> pour te déplacer.</span></li>
+            <li><i class="fas fa-mobile-alt"></i> <span>Compatible <strong>mobile et PC</strong> — les commandes s'adaptent à ton écran.</span></li>
+            <li><i class="fas fa-pause-circle"></i> <span>Appuie sur <strong>Échap</strong> ou clique à l'extérieur pour fermer un jeu.</span></li>
+            <li><i class="fas fa-save"></i> <span>Les <strong>meilleurs scores</strong> sont conservés tant que l'onglet reste ouvert.</span></li>
+            <li><i class="fas fa-shield-alt"></i> <span>Aucune <strong>donnée personnelle</strong> n'est collectée. 100% anonyme.</span></li>
+        </ul>
+    </div>
+
 </div>
 
+<!-- Modal jeu -->
 <div id="gameModal" class="modal">
     <div class="modal-content">
-        <span class="modal-close" onclick="closeGame()">&times;</span>
-        <h3 id="gameTitle" style="color:var(--neon); font-family:'Orbitron',sans-serif;"></h3>
+        <div class="mc-header">
+            <h3 id="gameTitle"><i class="fas fa-gamepad"></i> JEU</h3>
+            <button class="close-btn" onclick="closeGame()">&times;</button>
+        </div>
         <div id="gameContainer"></div>
         <div id="gameControls"></div>
     </div>
 </div>
+
+<div class="footer">© 2026 MARCO-XMD · Espace de Jeux — Tous droits réservés</div>
 
 <script>
 const gameModal = document.getElementById('gameModal');
@@ -145,31 +756,47 @@ const gameContainer = document.getElementById('gameContainer');
 const gameControls = document.getElementById('gameControls');
 let currentGameObj = null;
 
+const titles = {
+    snake: 'SNAKE',
+    tictactoe: 'MORPION',
+    runner: 'RUNNER',
+    flappy: 'FLAPPY BIRD',
+    pong: 'PONG',
+    '2048': '2048',
+    invaders: 'SPACE INVADERS',
+    tetris: 'TETRIS',
+    whack: 'WHACK-A-MOLE',
+    quizgame: 'QUIZ',
+    calc: 'CALCULATRICE',
+    memory: 'MEMORY',
+    calcgame: 'CALCUL MENTAL',
+    search: 'RECHERCHE'
+};
+
 async function openGame(game) {
     if (currentGameObj) { try { currentGameObj.stop(); } catch(e) {} currentGameObj = null; }
-    gameContainer.innerHTML = ''; gameControls.innerHTML = '';
+    gameContainer.innerHTML = '';
+    gameControls.innerHTML = '';
     gameModal.classList.add('active');
-    const titles = {
-        snake:'🐍 Snake', tictactoe:'❌⭕ Morpion', runner:'🏃 Runner', flappy:'🐦 Flappy Bird',
-        pong:'🏓 Pong', '2048':'🔢 2048', invaders:'👾 Space Invaders', tetris:'🧩 Tetris',
-        whack:'🔨 Whack-a-Mole', quizgame:'❓ Quiz', calc:'🔢 Calculatrice', memory:'🧠 Memory',
-        calcgame:'🧮 Calcul mental', search:'🔍 Recherche'
-    };
-    gameTitleEl.textContent = titles[game] || game;
+    gameTitleEl.innerHTML = `<i class="fas fa-gamepad"></i> ${titles[game] || game.toUpperCase()}`;
     try {
         const mod = await import(`./script/${game}.js`);
         currentGameObj = mod.default(gameContainer, gameControls);
     } catch (err) {
-        gameContainer.innerHTML = '<p style="color:var(--danger);">Erreur de chargement.</p>';
+        gameContainer.innerHTML = '<p style="color:var(--danger); padding:20px;">❌ Erreur de chargement du jeu.</p>';
         console.error(err);
     }
 }
+
 function closeGame() {
     if (currentGameObj) { try { currentGameObj.stop(); } catch(e) {} currentGameObj = null; }
     gameModal.classList.remove('active');
-    gameContainer.innerHTML = ''; gameControls.innerHTML = '';
+    gameContainer.innerHTML = '';
+    gameControls.innerHTML = '';
 }
-window.onclick = (e) => { if (e.target === gameModal) closeGame(); };
+
+window.addEventListener('click', (e) => { if (e.target === gameModal) closeGame(); });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && gameModal.classList.contains('active')) closeGame(); });
 </script>
 </body>
 </html>

@@ -13,6 +13,7 @@ const { startServer } = require("./server.js");
 
 const sessions = new Map();
 global.sessionsMap = sessions;
+global.startTime = Date.now(); // Uptime global du processus
 global.botLogs = new Map();
 global.addLog = (sessionID, action, description, severity = 'info') => {
     if (!global.botLogs.has(sessionID)) global.botLogs.set(sessionID, []);

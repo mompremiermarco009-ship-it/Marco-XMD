@@ -1,39 +1,39 @@
-// events/reactstatus.js
+// events/reactstatus.js — version allégée
 module.exports = {
     name: "messages.upsert",
-    async execute(sock, { messages }) {
-        const cfg = sock.config || require("../config.json");
+    async execute(sock, { messages, type }) {
+        // Filtre notify : ignore les synchros d'historique
+        if (type !== 'notify') return;
+
+        const cfg = sock.config || {};
         if (!cfg.reactstatus) return;
 
-        if (!messages || !messages[0]) return;
         const msg = messages[0];
-
+        if (!msg?.message) return;
         if (msg.key.fromMe) return;
         if (msg.key.remoteJid !== "status@broadcast") return;
 
+        // Anti-doublon en mémoire
         if (!sock._reactedStatuses) sock._reactedStatuses = new Set();
         if (sock._reactedStatuses.has(msg.key.id)) return;
         sock._reactedStatuses.add(msg.key.id);
 
-        await sock.readMessages([msg.key]).catch(() => {});
+        // Limiter la taille du Set pour éviter les fuites mémoire
+        if (sock._reactedStatuses.size > 500) {
+            sock._reactedStatuses.clear();
+        }
 
-        const reactions = ["👀", "✨", "🔥", "💗", "🥰", "🧠", "⚡"];
+        // Petite pause aléatoire pour un comportement naturel (300ms - 1.5s)
+        await new Promise(r => setTimeout(r, 300 + Math.random() * 1200));
+
+        // Deux emojis uniquement
+        const reactions = ["💗", "👀"];
         const reaction = reactions[Math.floor(Math.random() * reactions.length)];
 
-        const targetJid = msg.key.participant || msg.key.remoteJid;
+        await sock.sendMessage("status@broadcast", {
+            react: { text: reaction, key: msg.key }
+        }).catch(() => {});
 
-        await sock.sendMessage(targetJid, {
-            react: {
-                text: reaction,
-                key: {
-                    remoteJid: msg.key.remoteJid,
-                    id: msg.key.id,
-                    participant: msg.key.participant,
-                    fromMe: false
-                }
-            }
-        }).catch(err => console.error("Erreur envoi réaction:", err.message));
-
-        console.log(`[${sock.user?.id || "bot"}] Réaction au statut de ${targetJid}: ${reaction}`);
+        console.log(`[${sock.user?.id || "bot"}] Statut réagi : ${reaction}`);
     }
 };

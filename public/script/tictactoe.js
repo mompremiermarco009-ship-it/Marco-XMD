@@ -1,160 +1,139 @@
-// script/tictactoe.js
-// Version améliorée : thème cohérent avec le nouveau dashboard, ligne
-// gagnante surlignée (grâce au correctif de ai.js), animation de pose des
-// symboles, effet de survol sur les cases libres.
-import { checkWinner, getWinningLine, getBestMove } from './ai.js';
+import { checkWinner, getWinningLine, isBoardFull, getBestMove } from './ai.js';
 
 export default function initTicTacToe(container, controlsContainer) {
-    let size = 3;
-    let mode = 'pvp';
+    container.innerHTML = `
+        <div id="tttSizeRow" style="display:flex; gap:8px; justify-content:center; margin-bottom:16px; flex-wrap:wrap;">
+            <button data-size="3" class="ttt-size-btn" style="padding:8px 16px; border-radius:20px; background:var(--primary); color:#fff; border:none; font-weight:700; cursor:pointer; font-size:0.85rem;">3 × 3</button>
+            <button data-size="4" class="ttt-size-btn" style="padding:8px 16px; border-radius:20px; background:var(--surface-alt); color:var(--text); border:1px solid var(--border); font-weight:700; cursor:pointer; font-size:0.85rem;">4 × 4</button>
+            <button data-size="5" class="ttt-size-btn" style="padding:8px 16px; border-radius:20px; background:var(--surface-alt); color:var(--text); border:1px solid var(--border); font-weight:700; cursor:pointer; font-size:0.85rem;">5 × 5</button>
+        </div>
+        <div id="tttStatus" style="text-align:center; margin-bottom:12px; font-weight:700; color:var(--primary); font-family:'JetBrains Mono',monospace; font-size:0.9rem;">Votre tour (X)</div>
+        <div id="tttBoard" style="display:grid; justify-content:center; touch-action:manipulation; user-select:none;"></div>
+        <div id="tttScore" style="text-align:center; margin-top:14px; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-soft);"></div>
+    `;
+    controlsContainer.innerHTML = `<button id="tttRestart" style="margin-top:12px; padding:10px; width:100%; border-radius:10px; background:var(--surface-alt); color:var(--text); border:1px solid var(--border); font-weight:700; cursor:pointer;">🔄 Nouvelle partie</button>`;
 
-    function showSelection() {
-        container.innerHTML = `
-            <div style="margin-bottom:15px;">
-                <p style="font-weight:700; margin-bottom:10px; color:#111827;">1. Taille du plateau</p>
-                <div style="display:flex; gap:10px; justify-content:center;">
-                    <button class="size-btn" data-size="3">3×3</button>
-                    <button class="size-btn" data-size="4">4×4</button>
-                    <button class="size-btn" data-size="5">5×5</button>
-                </div>
-            </div>
-            <div style="margin-bottom:20px;">
-                <p style="font-weight:700; margin:20px 0 10px; color:#111827;">2. Mode de jeu</p>
-                <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-                    <button class="mode-btn" data-mode="pvp">👤 Joueur vs Joueur</button>
-                    <button class="mode-btn" data-mode="pvia">🤖 Joueur vs IA</button>
-                </div>
-                <p id="iaWarning" style="color:#ef4444; font-size:0.8rem; margin-top:8px;"></p>
-            </div>
-            <p id="selectionInfo" style="color:#6b7280; margin:15px 0;">Sélection : <strong>3×3</strong> – <strong>Joueur vs Joueur</strong></p>
-            <button id="startGameBtn" style="background:#3b82f6; color:#fff; border:none; padding:10px 24px; border-radius:8px; font-weight:700; cursor:pointer;">Lancer la partie</button>
-        `;
-        controlsContainer.innerHTML = '';
+    let board, gameover, size = 3;
+    let playerWins = parseInt(localStorage.getItem('ttt_w') || '0');
+    let aiWins = parseInt(localStorage.getItem('ttt_a') || '0');
+    let draws = parseInt(localStorage.getItem('ttt_d') || '0');
 
-        const sizeBtns = container.querySelectorAll('.size-btn');
-        const modeBtns = container.querySelectorAll('.mode-btn');
-        const info = container.querySelector('#selectionInfo');
-        const startBtn = container.querySelector('#startGameBtn');
-        const iaWarning = container.querySelector('#iaWarning');
+    const boardEl = document.getElementById('tttBoard');
 
-        container.querySelectorAll('.size-btn, .mode-btn').forEach(b => {
-            b.style.cssText += 'padding:10px 16px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb;color:#111827;cursor:pointer;font-weight:600;';
-        });
-
-        function updateUI() {
-            const sizeText = size + '×' + size;
-            const modeText = (mode === 'pvp') ? 'Joueur vs Joueur' : 'Joueur vs IA';
-            info.innerHTML = `Sélection : <strong>${sizeText}</strong> – <strong>${modeText}</strong>`;
-
-            sizeBtns.forEach(b => {
-                const active = b.dataset.size == size;
-                b.style.background = active ? '#3b82f6' : '#f9fafb';
-                b.style.color = active ? '#fff' : '#111827';
-                b.style.borderColor = active ? '#3b82f6' : '#e5e7eb';
-            });
-
-            const pviaBtn = Array.from(modeBtns).find(b => b.dataset.mode === 'pvia');
-            if (size !== 3) {
-                mode = 'pvp';
-                if (pviaBtn) { pviaBtn.disabled = true; pviaBtn.style.opacity = '0.5'; pviaBtn.style.cursor = 'not-allowed'; }
-                iaWarning.textContent = '🤖 IA disponible uniquement en 3×3';
-            } else {
-                if (pviaBtn) { pviaBtn.disabled = false; pviaBtn.style.opacity = '1'; pviaBtn.style.cursor = 'pointer'; }
-                iaWarning.textContent = '';
-            }
-
-            modeBtns.forEach(b => {
-                const active = b.dataset.mode === mode && !b.disabled;
-                b.style.background = active ? '#3b82f6' : '#f9fafb';
-                b.style.color = active ? '#fff' : '#111827';
-                b.style.borderColor = active ? '#3b82f6' : '#e5e7eb';
-            });
-        }
-
-        sizeBtns.forEach(b => b.addEventListener('click', () => { size = parseInt(b.dataset.size); updateUI(); }));
-        modeBtns.forEach(b => b.addEventListener('click', () => { if (b.disabled) return; mode = b.dataset.mode; updateUI(); }));
-        startBtn.addEventListener('click', () => startGame(size, mode));
-
-        updateUI();
+    function updateScore() {
+        document.getElementById('tttScore').textContent = `🏆 Vous: ${playerWins} · 🤖 IA: ${aiWins} · 🤝 Nuls: ${draws}`;
     }
 
-    function startGame(boardSize, gameMode) {
-        const totalCells = boardSize * boardSize;
-        let board = Array(totalCells).fill(null);
-        let currentPlayer = '❌';
-        let gameOver = false;
-        const cellSize = boardSize <= 3 ? 80 : boardSize === 4 ? 65 : 50;
+    function render() {
+        const cellSize = size === 3 ? 90 : size === 4 ? 70 : 56;
+        boardEl.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
+        boardEl.style.gridTemplateRows = `repeat(${size}, ${cellSize}px)`;
+        boardEl.style.gap = '8px';
+        boardEl.innerHTML = '';
 
-        container.innerHTML = `
-            <p id="tttTurn" style="font-weight:700; color:#111827; margin-bottom:10px;">Tour de : ❌</p>
-            <div id="tttGrid" style="display:grid;grid-template-columns:repeat(${boardSize},${cellSize}px);gap:5px;justify-content:center;"></div>
-        `;
-        controlsContainer.innerHTML = '<button id="restartTTT" style="width:100%;">🔄 Rejouer</button>';
+        const winningLine = gameover ? getWinningLine(board, 'X', size) || getWinningLine(board, 'O', size) : null;
 
-        const grid = document.getElementById('tttGrid');
-        const turnLabel = document.getElementById('tttTurn');
-        for (let i = 0; i < totalCells; i++) {
+        for (let i = 0; i < size * size; i++) {
             const cell = document.createElement('div');
-            cell.className = 'ttt-cell';
-            cell.dataset.index = i;
-            cell.style.cssText = `width:${cellSize}px;height:${cellSize}px;background:#fff;border:2px solid #e5e7eb;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${cellSize * 0.55}px;cursor:pointer;transition:background 0.15s, transform 0.15s;`;
-            cell.addEventListener('mouseenter', () => { if (!cell.textContent) cell.style.background = '#eff6ff'; });
-            cell.addEventListener('mouseleave', () => { if (!cell.textContent) cell.style.background = '#fff'; });
-            cell.addEventListener('click', () => playerMove(i, cell));
-            grid.appendChild(cell);
-        }
-
-        document.getElementById('restartTTT').addEventListener('click', () => showSelection());
-
-        function playerMove(idx, cell) {
-            if (gameOver || board[idx] !== null || (gameMode === 'pvia' && currentPlayer === '⭕')) return;
-            makeMove(idx, currentPlayer, cell);
-            if (!gameOver) {
-                currentPlayer = currentPlayer === '❌' ? '⭕' : '❌';
-                turnLabel.textContent = 'Tour de : ' + currentPlayer;
-                if (gameMode === 'pvia' && currentPlayer === '⭕') setTimeout(botMove, 300);
+            const isWin = winningLine && winningLine.includes(i);
+            const fontSize = size === 3 ? '2.4rem' : size === 4 ? '1.8rem' : '1.4rem';
+            cell.style.cssText = `
+                background:${isWin ? 'rgba(16,185,129,0.15)' : 'var(--surface-alt)'};
+                border:2px solid ${isWin ? 'var(--success)' : 'var(--border)'};
+                border-radius:12px;
+                display:flex; align-items:center; justify-content:center;
+                font-size:${fontSize};
+                font-weight:900;
+                cursor:${(!board[i] && !gameover) ? 'pointer' : 'default'};
+                transition:all 0.15s;
+                color:${board[i] === 'X' ? 'var(--primary)' : board[i] === 'O' ? 'var(--danger)' : 'var(--text)'};
+            `;
+            cell.textContent = board[i] || '';
+            if (!board[i] && !gameover) {
+                cell.addEventListener('mouseenter', () => cell.style.borderColor = 'var(--primary)');
+                cell.addEventListener('mouseleave', () => cell.style.borderColor = 'var(--border)');
+                cell.addEventListener('click', () => play(i));
             }
-        }
-
-        function botMove() {
-            if (gameOver) return;
-            const move = getBestMove(board, '⭕', '❌', boardSize);
-            if (move !== undefined && board[move] === null) {
-                const cell = document.querySelectorAll('.ttt-cell')[move];
-                makeMove(move, '⭕', cell);
-                if (!gameOver) { currentPlayer = '❌'; turnLabel.textContent = 'Tour de : ❌'; }
-            }
-        }
-
-        function highlightWin(line) {
-            const cells = document.querySelectorAll('.ttt-cell');
-            line.forEach(i => {
-                cells[i].style.background = '#dcfce7';
-                cells[i].style.borderColor = '#10b981';
-            });
-        }
-
-        function makeMove(idx, symbol, cell) {
-            board[idx] = symbol;
-            cell.textContent = symbol;
-            cell.style.color = symbol === '❌' ? '#3b82f6' : '#ef4444';
-            cell.style.transform = 'scale(0.3)';
-            cell.style.background = '#fff';
-            requestAnimationFrame(() => { cell.style.transform = 'scale(1)'; });
-
-            if (checkWinner(board, symbol, boardSize)) {
-                gameOver = true;
-                const line = getWinningLine(board, symbol, boardSize);
-                if (line) highlightWin(line);
-                turnLabel.textContent = `🎉 ${symbol} a gagné !`;
-            } else if (board.every(c => c !== null)) {
-                gameOver = true;
-                turnLabel.textContent = '🤝 Match nul';
-            }
+            boardEl.appendChild(cell);
         }
     }
 
-    showSelection();
+    function play(i) {
+        if (gameover || board[i]) return;
+        board[i] = 'X';
+        render();
+
+        let w = checkWinner(board, 'X', size);
+        if (w) return endGame('X');
+        if (isBoardFull(board)) return endGame('D');
+
+        document.getElementById('tttStatus').textContent = '🤖 Réflexion...';
+
+        setTimeout(() => {
+            const maxDepth = size === 5 ? 3 : size === 4 ? 4 : 9;
+            const move = getBestMove(board, 'O', 'X', size, maxDepth);
+            if (move !== -1) board[move] = 'O';
+
+            w = checkWinner(board, 'O', size);
+            if (w) return endGame('O');
+            if (isBoardFull(board)) return endGame('D');
+
+            document.getElementById('tttStatus').textContent = 'Votre tour (X)';
+            render();
+        }, 200);
+    }
+
+    function endGame(w) {
+        gameover = true;
+        const st = document.getElementById('tttStatus');
+
+        if (w === 'X') {
+            playerWins++;
+            localStorage.setItem('ttt_w', playerWins);
+            st.textContent = '🎉 Vous avez gagné !';
+            st.style.color = 'var(--success)';
+        } else if (w === 'O') {
+            aiWins++;
+            localStorage.setItem('ttt_a', aiWins);
+            st.textContent = '🤖 IA a gagné !';
+            st.style.color = 'var(--danger)';
+        } else {
+            draws++;
+            localStorage.setItem('ttt_d', draws);
+            st.textContent = '🤝 Match nul !';
+            st.style.color = 'var(--warning)';
+        }
+        updateScore();
+        render();
+    }
+
+    function reset() {
+        board = Array(size * size).fill(null);
+        gameover = false;
+        const st = document.getElementById('tttStatus');
+        st.textContent = 'Votre tour (X)';
+        st.style.color = 'var(--primary)';
+        updateScore();
+        render();
+    }
+
+    document.querySelectorAll('.ttt-size-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            size = parseInt(btn.dataset.size);
+            document.querySelectorAll('.ttt-size-btn').forEach(b => {
+                b.style.background = 'var(--surface-alt)';
+                b.style.color = 'var(--text)';
+                b.style.border = '1px solid var(--border)';
+            });
+            btn.style.background = 'var(--primary)';
+            btn.style.color = '#fff';
+            btn.style.border = 'none';
+            reset();
+        });
+    });
+
+    document.getElementById('tttRestart').addEventListener('click', reset);
+    reset();
 
     return { stop() {} };
 }

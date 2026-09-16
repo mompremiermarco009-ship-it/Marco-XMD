@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 | MARCO-XMD</title>
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            const saved = localStorage.getItem('marco-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
+        })();
+    </script>
+    <style>
+        :root {
+            --primary: #0d6efd;
+            --primary-light: #3b82f6;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-soft: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 10px 40px rgba(13,110,253,0.10);
+        }
+        [data-theme="dark"] {
+            --primary: #3b82f6;
+            --primary-light: #60a5fa;
+            --bg: #0a0e1a;
+            --surface: #111827;
+            --text: #f1f5f9;
+            --text-soft: #cbd5e1;
+            --text-muted: #64748b;
+            --border: #1e293b;
+            --shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        /* Fond décoratif */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 30%, rgba(13,110,253,0.08) 0%, transparent 30%),
+                        radial-gradient(circle at 70% 70%, rgba(59,130,246,0.06) 0%, transparent 30%);
+            animation: bgMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        @keyframes bgMove {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 50px 40px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow);
+            animation: cardIn 0.5s ease-out;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .error-code {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(5rem, 15vw, 8rem);
+            font-weight: 900;
+            letter-spacing: -4px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 10px;
+            animation: codePulse 3s ease-in-out infinite;
+        }
+        @keyframes codePulse {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(13,110,253,0.3)); }
+            50% { filter: drop-shadow(0 0 30px rgba(13,110,253,0.5)); }
+        }
+        .error-icon {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 16px;
+            opacity: 0.8;
+        }
+        .error-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+        .error-msg {
+            font-size: 0.95rem;
+            color: var(--text-soft);
+            line-height: 1.65;
+            margin-bottom: 28px;
+        }
+        .error-msg code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--primary);
+            border: 1px solid var(--border);
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(13,110,253,0.3);
+        }
+        .btn-primary:hover {
+            background: #0a4db3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13,110,253,0.4);
+        }
+        .btn-outline {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-outline:hover {
+            background: var(--bg);
+            border-color: var(--primary-light);
+            color: var(--primary);
+        }
+        .footer-note {
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .footer-note a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .footer-note a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">404</div>
+        <div class="error-icon"><i class="fas fa-compass"></i></div>
+        <h1 class="error-title">Page introuvable</h1>
+        <p class="error-msg">
+            La page que vous cherchez n'existe pas ou a été déplacée.<br>
+            Vérifiez l'URL ou retournez à l'accueil.
+        </p>
+        <div class="actions">
+            <a class="btn btn-primary" href="/">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a class="btn btn-outline" href="/games.html">
+                <i class="fas fa-gamepad"></i> Jeux
+            </a>
+        </div>
+        <div class="footer-note">
+            © 2026 <strong>MARCO-XMD</strong> · by Marco Project
+        </div>
+    </div>
+</body>
+</html>

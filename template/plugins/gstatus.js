@@ -1,84 +1,63 @@
-cat > plugins/groupstatus.js << 'EOF'
-const { downloadMediaMessage, generateWAMessageFromContent } = require("@whiskeysockets/baileys");
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 module.exports = {
-    name: "gstatus",
-    alias: ["groupstatus", "gs"],
-    category: "group",
-    desc: "Publie un vrai statut (story) dans le groupe (image, vidéo ou texte)",
+    name: 'gstatus',
+    aliases: ['groupstatus', 'statutgroup'],
+    category: 'sticker',
+    desc: 'Publie un statut WhatsApp avec image ou vidéo',
+    usage: '.gstatus <texte> (répondre à une image/vidéo)',
+
     async execute(sock, msg, args) {
         const jid = msg.key.remoteJid;
-        if (!jid.endsWith("@g.us")) {
-            return sock.sendMessage(jid, { text: "❌ Cette commande ne peut être utilisée que dans un groupe." });
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+        const prefix = cfg.prefix || '.';
+
+        const m = msg.message;
+        const quoted = m?.extendedTextMessage?.contextInfo?.quotedMessage;
+        let media = null;
+        let type = null;
+
+        if (m?.imageMessage) { media = m.imageMessage; type = 'image'; }
+        else if (quoted?.imageMessage) { media = quoted.imageMessage; type = 'image'; }
+        else if (m?.videoMessage) { media = m.videoMessage; type = 'video'; }
+        else if (quoted?.videoMessage) { media = quoted.videoMessage; type = 'video'; }
+
+        const caption = args.join(' ').trim() || '';
+
+        if (!media) {
+            return sock.sendMessage(jid, {
+                text: `╔════════════════════════╗\n` +
+                      `║   📸  𝐆𝐒𝐓𝐀𝐓𝐔𝐒\n` +
+                      `╚════════════════════════╝\n\n` +
+                      `┃  ❌ Envoyez une image/vidéo avec\n` +
+                      `┃  ┃  la légende *${prefix}gstatus <texte>*\n` +
+                      `┃  ┃  ou répondez à un média.\n\n` +
+                      `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
         }
 
-        const signature = "\n\n> by Marco-XMD \n> by Mr Marco";
-        let text = args.join(" ");
-        let caption = text ? text + signature : signature;
-        const quotedMessage = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-
-        let mediaBuffer = null;
-        let mediaType = null; // "image" ou "video"
-
-        // Récupération du buffer depuis le message original ou cité
-        if (msg.message?.imageMessage) {
-            mediaBuffer = await downloadMediaMessage(msg, "buffer", {});
-            mediaType = "image";
-            caption = (msg.message.imageMessage.caption || text) + signature;
-        } else if (quotedMessage?.imageMessage) {
-            const mockMsg = { message: { imageMessage: quotedMessage.imageMessage } };
-            mediaBuffer = await downloadMediaMessage(mockMsg, "buffer", {});
-            mediaType = "image";
-            caption = (quotedMessage.imageMessage.caption || text) + signature;
-        } else if (msg.message?.videoMessage) {
-            mediaBuffer = await downloadMediaMessage(msg, "buffer", {});
-            mediaType = "video";
-            caption = (msg.message.videoMessage.caption || text) + signature;
-        } else if (quotedMessage?.videoMessage) {
-            const mockMsg = { message: { videoMessage: quotedMessage.videoMessage } };
-            mediaBuffer = await downloadMediaMessage(mockMsg, "buffer", {});
-            mediaType = "video";
-            caption = (quotedMessage.videoMessage.caption || text) + signature;
-        }
+        await sock.sendMessage(jid, { react: { text: '⏳', key: msg.key } });
 
         try {
-            let innerMessage;
+            const stream = await downloadContentFromMessage(media, type);
+            let buffer = Buffer.from([]);
+            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
 
-            if (mediaBuffer && mediaType) {
-                // Construction du contenu du message avec le buffer
-                const media = {
-                    [mediaType]: mediaBuffer,
-                    caption: caption,
-                    mimetype: mediaType === "image" ? "image/jpeg" : "video/mp4"
-                };
-                innerMessage = media;
-            } else if (text.trim().length > 0) {
-                innerMessage = { text: caption };
-            } else {
-                return sock.sendMessage(jid, {
-                    text: "❌ *Utilisation correcte :*\n• `.gstatus Votre texte`.\n• Répondez à une image/vidéo avec `.gstatus`."
-                });
-            }
+            const payload = type === 'image'
+                ? { image: buffer, caption }
+                : { video: buffer, caption };
 
-            // Génération du message via l'API interne (accepte mieux les buffers)
-            const generated = generateWAMessageFromContent(
-                jid,
-                { groupStatusMessage: innerMessage },
-                { userJid: sock.user.id, quoted: msg }
-            );
+            await sock.sendMessage('status@broadcast', payload);
 
-            // Envoi direct du paquet réseau
-            await sock.relayMessage(jid, generated.message, {
-                messageId: generated.key.id
-            });
-
-            await sock.sendMessage(jid, { text: "✅ Statut publié avec succès dans le groupe !" });
-        } catch (err) {
-            console.error("Erreur groupstatus :", err);
+            await sock.sendMessage(jid, { react: { text: '✅', key: msg.key } });
             await sock.sendMessage(jid, {
-                text: `❌ Erreur lors de l'envoi.\n*Raison technique :* ${err.message || err}`
-            });
+                text: `✅ Statut publié avec succès !\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
+        } catch (err) {
+            console.error('Erreur gstatus:', err.message);
+            await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } });
+            await sock.sendMessage(jid, { text: '❌ Erreur lors de la publication.' }, { quoted: msg });
         }
     }
 };
-EOF

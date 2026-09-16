@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: marco-xmd
+    env: node
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: bash build.sh
+    startCommand: node index.js
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: VOICE_PORT
+        value: 5001

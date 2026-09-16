@@ -1,87 +1,76 @@
-// plugins/leaveall.js - Quitte tous les groupes sauf ceux à garder
 const fs = require('fs');
 const path = require('path');
 const { isAuthorized } = require('../utils/auth');
 
 module.exports = {
-    name: "leaveall",
-    aliases: ["quittetout", "leavegroups"],
-    category: "owner",
-    desc: "Quitte tous les groupes sauf ceux listés dans config.keepGroups",
-    usage: ".leaveall [confirm]",
-    async execute(sock, msg, args, cmd) {
-        const jid = msg.key.remoteJid;
-        const config = sock.config;
+    name: 'leaveall',
+    aliases: ['quittetout', 'leavegroups'],
+    category: 'owner',
+    desc: 'Quitte tous les groupes sauf ceux à conserver',
+    usage: '.leaveall [confirm]',
 
-        if (!isAuthorized(sock, msg, config)) {
-            return sock.sendMessage(jid, { text: "❌ Commande réservée au propriétaire.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
+    async execute(sock, msg, args) {
+        const jid = msg.key.remoteJid;
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+
+        if (!isAuthorized(sock, msg, cfg)) {
+            return sock.sendMessage(jid, { text: '❌ Réservé au propriétaire.' }, { quoted: msg });
         }
 
-        const force = args[0]?.toLowerCase() === 'confirm' || args[0]?.toLowerCase() === 'force';
+        const force = args[0]?.toLowerCase() === 'confirm';
 
         try {
-            await sock.sendMessage(jid, { react: { text: '⏳', key: msg.key } });
-
             const groups = await sock.groupFetchAllParticipating();
-            const groupList = Object.values(groups);
+            const list = Object.values(groups);
 
-            if (groupList.length === 0) {
-                return sock.sendMessage(jid, { text: "ℹ️ Le bot n'est dans aucun groupe.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
+            if (list.length === 0) {
+                return sock.sendMessage(jid, { text: 'ℹ️ Aucun groupe.' }, { quoted: msg });
             }
 
-            const keepGroups = Array.isArray(config.keepGroups) ? config.keepGroups : [];
+            const keepGroups = Array.isArray(cfg.keepGroups) ? cfg.keepGroups : [];
 
-            let groupsToLeave = [];
+            let toLeave = [];
             if (force || keepGroups.length === 0) {
-                groupsToLeave = groupList;
+                toLeave = list;
                 if (!force && keepGroups.length === 0) {
                     return sock.sendMessage(jid, {
-                        text: "⚠️ Aucun groupe à conserver trouvé. Le bot va quitter TOUS les groupes.\n" +
-                              "Si tu es sûr, tape : `.leaveall confirm`\n\n> Powered by ©Mr Marco"
+                        text: `⚠️ Aucun groupe à conserver.\nTapez *.leaveall confirm* pour quitter TOUS les groupes.\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
                     }, { quoted: msg });
                 }
             } else {
-                groupsToLeave = groupList.filter(g => !keepGroups.includes(g.id));
+                toLeave = list.filter(g => !keepGroups.includes(g.id));
             }
 
-            if (groupsToLeave.length === 0) {
-                return sock.sendMessage(jid, { text: "✅ Le bot est déjà uniquement dans les groupes à conserver.\n\n> Powered by ©Mr Marco" }, { quoted: msg });
+            if (toLeave.length === 0) {
+                return sock.sendMessage(jid, { text: '✅ Déjà uniquement dans les groupes à conserver.' }, { quoted: msg });
             }
 
-            await sock.sendMessage(jid, {
-                text: `🔄 Départ de ${groupsToLeave.length} groupe(s)...\n\n> Powered by ©Mr Marco`
-            }, { quoted: msg });
+            await sock.sendMessage(jid, { text: `🔄 Départ de ${toLeave.length} groupe(s)...` }, { quoted: msg });
 
-            let successCount = 0;
-            let failCount = 0;
-
-            for (const g of groupsToLeave) {
+            let ok = 0, fail = 0;
+            for (const g of toLeave) {
                 try {
                     await sock.groupLeave(g.id);
-                    successCount++;
-                    console.log(`✅ Quitté : ${g.subject || g.id}`);
+                    ok++;
                     await new Promise(r => setTimeout(r, 2000));
-                } catch (e) {
-                    failCount++;
-                    console.error(`❌ Échec pour ${g.subject || g.id}:`, e.message);
+                } catch {
+                    fail++;
                 }
             }
 
-            let reply = `📊 *Résultat :*\n` +
-                        `✅ Groupes quittés : ${successCount}\n` +
-                        `❌ Échecs : ${failCount}\n\n`;
-            if (keepGroups.length > 0) {
-                reply += `🛡️ Groupes conservés : ${keepGroups.length}\n`;
-            }
-            reply += `\n> Powered by ©Mr Marco`;
+            let text = `╔════════════════════════╗\n`;
+            text += `║   🚪  𝐑𝐄́𝐒𝐔𝐋𝐓𝐀𝐓\n`;
+            text += `╚════════════════════════╝\n\n`;
+            text += `┃  ✅  Quittés : ${ok}\n`;
+            text += `┃  ❌  Échecs  : ${fail}\n`;
+            if (keepGroups.length > 0) text += `┃  🛡️  Conservés : ${keepGroups.length}\n`;
+            text += `\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
 
-            await sock.sendMessage(jid, { text: reply }, { quoted: msg });
-
+            await sock.sendMessage(jid, { text }, { quoted: msg });
         } catch (err) {
-            console.error("Erreur plugin leaveall:", err);
-            await sock.sendMessage(jid, {
-                text: "❌ Une erreur est survenue lors du départ des groupes.\n> Powered by ©Mr Marco"
-            }, { quoted: msg });
+            console.error('Erreur leaveall:', err.message);
+            await sock.sendMessage(jid, { text: '❌ Erreur.' }, { quoted: msg });
         }
     }
 };

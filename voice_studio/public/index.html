@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>MarcoVoice Studio | MARCO-XMD</title>
+<link rel="icon" type="image/png" href="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var s = localStorage.getItem('marco-theme');
+  var d = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', s || (d ? 'dark' : 'light'));
+})();
+</script>
+<style>
+:root{--primary:#0d6efd;--primary-light:#3b82f6;--primary-dark:#0a4db3;--bg:#f8fafc;--surface:#fff;--surface-alt:#f1f5f9;--text:#0f172a;--text-soft:#475569;--text-muted:#94a3b8;--border:#e2e8f0;--border-hover:#cbd5e1;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);--shadow-lg:0 10px 40px rgba(13,110,253,.10)}
+[data-theme="dark"]{--primary:#3b82f6;--primary-light:#60a5fa;--primary-dark:#1d4ed8;--bg:#0a0e1a;--surface:#111827;--surface-alt:#1e293b;--text:#f1f5f9;--text-soft:#cbd5e1;--text-muted:#64748b;--border:#1e293b;--border-hover:#334155;--shadow:0 1px 3px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.3);--shadow-lg:0 10px 40px rgba(0,0,0,.5)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px;transition:.3s}
+.navbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.navbar-inner{max-width:800px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{width:42px;height:42px;border-radius:10px;border:1px solid var(--border)}
+.brand-info h1{font-size:1.05rem;font-weight:800;letter-spacing:-.3px}
+.brand-info span{font-size:.78rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.navbar-actions{display:flex;gap:8px;align-items:center}
+.nav-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:var(--radius-sm);font-size:.86rem;font-weight:600;text-decoration:none;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-soft);transition:.15s}
+.nav-btn:hover{background:var(--surface-alt);border-color:var(--border-hover);color:var(--text)}
+.theme-toggle{width:40px;height:40px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-soft);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;transition:.2s}
+.theme-toggle:hover{background:var(--surface-alt);color:var(--primary)}
+.theme-toggle .icon-sun,.theme-toggle .icon-moon{position:absolute;transition:transform .4s,opacity .3s}
+[data-theme="light"] .theme-toggle .icon-sun{opacity:0;transform:rotate(180deg) scale(0)}
+[data-theme="light"] .theme-toggle .icon-moon{opacity:1;transform:rotate(0) scale(1)}
+[data-theme="dark"] .theme-toggle .icon-sun{opacity:1;transform:rotate(0) scale(1)}
+[data-theme="dark"] .theme-toggle .icon-moon{opacity:0;transform:rotate(-180deg) scale(0)}
+.container{max-width:800px;margin:0 auto;padding:30px 20px}
+.page-hero{text-align:center;margin-bottom:30px}
+.page-hero .ph-icon{width:70px;height:70px;border-radius:20px;background:linear-gradient(135deg,var(--primary),var(--primary-light));display:inline-flex;align-items:center;justify-content:center;font-size:1.8rem;color:#fff;box-shadow:0 15px 40px rgba(13,110,253,.3);margin-bottom:16px}
+.page-hero h2{font-size:1.6rem;font-weight:800;letter-spacing:-.5px;margin-bottom:8px}
+.page-hero p{color:var(--text-soft);font-size:.95rem;max-width:520px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
+.form-group{margin-bottom:18px;text-align:left}
+.form-label{display:block;font-size:.85rem;font-weight:600;color:var(--text-soft);margin-bottom:8px}
+.form-label i{color:var(--primary);margin-right:6px}
+textarea,.form-select,.form-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:.15s;resize:vertical}
+textarea{min-height:110px;line-height:1.5}
+textarea:focus,.form-select:focus,.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(13,110,253,.1);background:var(--surface)}
+.range-group{display:grid;grid-template-columns:100px 1fr 60px;gap:12px;align-items:center;margin-bottom:16px}
+.range-group label{font-size:.85rem;font-weight:600;color:var(--text-soft)}
+.range-group input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:var(--border);outline:none;padding:0}
+.range-group input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--primary);cursor:pointer;box-shadow:0 2px 6px rgba(13,110,253,.4)}
+.range-group input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--primary);cursor:pointer;border:none;box-shadow:0 2px 6px rgba(13,110,253,.4)}
+.range-value{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--primary);font-weight:600;text-align:right}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px;border-radius:var(--radius-sm);font-size:.92rem;font-weight:700;cursor:pointer;border:none;transition:all .15s;text-decoration:none;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff;width:100%;box-shadow:0 6px 18px rgba(13,110,253,.3)}
+.btn-primary:hover{background:var(--primary-dark);transform:translateY(-2px)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.btn-success{background:var(--success);color:#fff;box-shadow:0 6px 18px rgba(16,185,129,.3)}
+.btn-success:hover{background:#059669;transform:translateY(-2px)}
+.btn-outline{background:var(--surface);color:var(--text);border:1px solid var(--border);width:100%}
+.btn-outline:hover{background:var(--surface-alt);border-color:var(--border-hover)}
+.status{display:none;padding:14px 18px;border-radius:var(--radius-sm);margin-top:16px;font-size:.9rem;font-weight:600;align-items:center;gap:10px}
+.status.show{display:flex}
+.status.info{background:rgba(13,110,253,.08);color:var(--primary);border:1px solid rgba(13,110,253,.2)}
+.status.success{background:rgba(16,185,129,.08);color:var(--success);border:1px solid rgba(16,185,129,.2)}
+.status.error{background:rgba(239,68,68,.08);color:var(--danger);border:1px solid rgba(239,68,68,.2)}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(13,110,253,.2);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.audio-result{display:none;margin-top:20px}
+.audio-result.show{display:block;animation:fadeIn .3s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.audio-player-box{background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:14px}
+.audio-player-box .ap-icon{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-light));display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;margin-bottom:14px;box-shadow:0 10px 25px rgba(13,110,253,.3)}
+.audio-player-box .ap-title{font-size:.95rem;font-weight:700;margin-bottom:4px}
+.audio-player-box .ap-meta{font-size:.78rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:14px}
+.audio-player-box audio{width:100%;border-radius:30px}
+.audio-actions{display:flex;gap:10px;flex-wrap:wrap}
+.audio-actions .btn{flex:1;min-width:140px;width:auto}
+.info-box{background:var(--surface-alt);border-left:3px solid var(--primary);border-radius:6px;padding:14px 16px;margin-top:16px;font-size:.85rem;color:var(--text-soft);line-height:1.6}
+.info-box strong{color:var(--text)}
+.info-box i{color:var(--primary)}
+.footer{text-align:center;padding:26px 20px;color:var(--text-muted);font-size:.82rem;border-top:1px solid var(--border);margin-top:40px}
+.footer strong{color:var(--text-soft)}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:var(--bg);padding:14px 22px;border-radius:var(--radius-sm);font-size:.9rem;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(20px);transition:.3s;z-index:2000;max-width:90%}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{background:var(--danger);color:#fff}
+.toast.success{background:var(--success);color:#fff}
+@media (max-width:640px){
+  .navbar{padding:12px 16px}
+  .nav-btn{padding:8px 12px;font-size:.8rem}
+  .nav-btn span{display:none}
+  .container{padding:20px 16px}
+  .range-group{grid-template-columns:80px 1fr 50px;gap:8px}
+  .audio-actions .btn{width:100%}
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <div class="brand">
+      <img src="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png" alt="MARCO-XMD">
+      <div class="brand-info">
+        <h1>MarcoVoice Studio</h1>
+        <span>MARCO-XMD</span>
+      </div>
+    </div>
+    <div class="navbar-actions">
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-sun icon-sun"></i>
+        <i class="fas fa-moon icon-moon"></i>
+      </button>
+      <a class="nav-btn" href="/">
+        <i class="fas fa-arrow-left"></i>
+        <span>Retour</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-hero">
+    <div class="ph-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+    <h2>MarcoVoice Studio</h2>
+    <p>Convertissez votre texte en voix naturelle avec des voix françaises variées.</p>
+  </div>
+
+  <div class="card" id="formCard">
+    <div class="form-group">
+      <label class="form-label" for="text"><i class="fas fa-keyboard"></i> Votre texte</label>
+      <textarea id="text" placeholder="Entrez votre texte ici..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="voice"><i class="fas fa-microphone"></i> Voix</label>
+      <select id="voice" class="form-select">
+        <option value="fr-FR-HenriNeural">Marcus (HenriNeural) – voix grave motivante</option>
+        <option value="fr-FR-RemyMultilingualNeural">Carl (RemyMultilingualNeural) – voix grave multilingue</option>
+        <option value="fr-FR-DeniseNeural">Jenny (DeniseNeural) – voix féminine histoires</option>
+        <option value="fr-FR-VivienneMultilingualNeural">Sophie (VivienneMultilingualNeural) – voix douce multilingue</option>
+        <option value="fr-FR-EloiseNeural">Brigitte (EloiseNeural) – voix féminine mature</option>
+      </select>
+    </div>
+
+    <div class="range-group">
+      <label for="rate">⚡ Vitesse</label>
+      <input type="range" id="rate" min="-50" max="100" value="0">
+      <span class="range-value" id="rateValue">0%</span>
+    </div>
+
+    <div class="range-group">
+      <label for="pitch">🎵 Hauteur</label>
+      <input type="range" id="pitch" min="-50" max="50" value="0">
+      <span class="range-value" id="pitchValue">0Hz</span>
+    </div>
+
+    <div class="range-group">
+      <label for="volume">🔊 Volume</label>
+      <input type="range" id="volume" min="-50" max="50" value="0">
+      <span class="range-value" id="volumeValue">0%</span>
+    </div>
+
+    <button class="btn btn-primary" id="generateBtn" onclick="generer()">
+      <i class="fas fa-volume-high"></i> Générer l'audio
+    </button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <!-- Résultat audio (Option C) -->
+  <div class="audio-result" id="audioResult">
+    <div class="card">
+      <div class="audio-player-box">
+        <div class="ap-icon"><i class="fas fa-music"></i></div>
+        <div class="ap-title">Votre audio est prêt !</div>
+        <div class="ap-meta" id="audioMeta">—</div>
+        <audio id="audioPlayer" controls></audio>
+      </div>
+      <div class="audio-actions">
+        <button class="btn btn-success" onclick="downloadAudio()">
+          <i class="fas fa-download"></i> Télécharger
+        </button>
+        <button class="btn btn-outline" onclick="resetForm()">
+          <i class="fas fa-rotate-left"></i> Regénérer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <i class="fas fa-lightbulb"></i>
+    <strong>Astuce :</strong> Réglez la <b>Vitesse</b> à +10% pour une voix plus naturelle et dynamique, ou à -10% pour un ton calme et posé. La <b>Hauteur</b> ajuste la profondeur de la voix : positive pour un ton plus aigu, négative pour un ton plus grave.
+  </div>
+
+  <div class="info-box" style="border-left-color: var(--warning);">
+    <i class="fas fa-shield-alt" style="color: var(--warning);"></i>
+    <strong>Confidentialité :</strong> Vos fichiers audio sont temporaires et supprimés automatiquement après 30 minutes. Personne d'autre n'y a accès.
+  </div>
+</div>
+
+<footer class="footer">
+  © 2026 <strong>MARCO-XMD</strong> · by Marco Project · Tous droits réservés
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const voicePresets = {
+    "fr-FR-HenriNeural": { rate: 0, pitch: 0, volume: 0 },
+    "fr-FR-RemyMultilingualNeural": { rate: -10, pitch: -5, volume: 5 },
+    "fr-FR-DeniseNeural": { rate: 5, pitch: 5, volume: 0 },
+    "fr-FR-VivienneMultilingualNeural": { rate: -5, pitch: 10, volume: 0 },
+    "fr-FR-EloiseNeural": { rate: 10, pitch: -5, volume: 5 }
+};
+
+let currentAudio = null;
+
+function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('marco-theme', next);
+}
+
+function toast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.className = 'toast ' + type, 2500);
+}
+
+function setStatus(message, type = 'info', spinner = false) {
+    const s = document.getElementById('status');
+    s.className = 'status show ' + type;
+    s.innerHTML = spinner ? '<span class="spinner"></span> ' + message : message;
+}
+
+function hideStatus() {
+    document.getElementById('status').className = 'status';
+}
+
+function applyVoicePreset(voiceValue) {
+    const preset = voicePresets[voiceValue];
+    if (!preset) return;
+    document.getElementById('rate').value = preset.rate;
+    document.getElementById('pitch').value = preset.pitch;
+    document.getElementById('volume').value = preset.volume;
+    updateDisplayValues();
+}
+
+function updateDisplayValues() {
+    document.getElementById('rateValue').textContent = document.getElementById('rate').value + '%';
+    document.getElementById('pitchValue').textContent = document.getElementById('pitch').value + 'Hz';
+    document.getElementById('volumeValue').textContent = document.getElementById('volume').value + '%';
+}
+
+document.getElementById('rate').addEventListener('input', updateDisplayValues);
+document.getElementById('pitch').addEventListener('input', updateDisplayValues);
+document.getElementById('volume').addEventListener('input', updateDisplayValues);
+document.getElementById('voice').addEventListener('change', function() {
+    applyVoicePreset(this.value);
+});
+
+window.addEventListener('load', function() {
+    applyVoicePreset(document.getElementById('voice').value);
+});
+
+async function generer() {
+    const text = document.getElementById('text').value.trim();
+    if (!text) {
+        setStatus('<i class="fas fa-exclamation-triangle"></i> Veuillez entrer un texte.', 'error');
+        return;
+    }
+
+    const voice = document.getElementById('voice').value;
+    const rateVal = parseInt(document.getElementById('rate').value);
+    const pitchVal = parseInt(document.getElementById('pitch').value);
+    const volumeVal = parseInt(document.getElementById('volume').value);
+    const rate = (rateVal >= 0 ? '+' : '') + rateVal + '%';
+    const pitch = (pitchVal >= 0 ? '+' : '') + pitchVal + 'Hz';
+    const volume = (volumeVal >= 0 ? '+' : '') + volumeVal + '%';
+
+    setStatus('Génération en cours...', 'info', true);
+    document.getElementById('generateBtn').disabled = true;
+
+    try {
+        const response = await fetch('/api/voice/generer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, voice, rate, pitch, volume })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erreur serveur');
+
+        // Afficher le lecteur
+        currentAudio = {
+            streamUrl: data.streamUrl,
+            downloadUrl: data.downloadUrl,
+            token: data.token,
+            size: data.size
+        };
+
+        const player = document.getElementById('audioPlayer');
+        player.src = data.streamUrl;
+
+        const sizeKb = (data.size / 1024).toFixed(1);
+        document.getElementById('audioMeta').textContent = `📁 Fichier temporaire · ${sizeKb} KB`;
+
+        // Masquer le statut, afficher le résultat
+        hideStatus();
+        document.getElementById('audioResult').classList.add('show');
+
+        // Scroll vers le lecteur
+        setTimeout(() => {
+            document.getElementById('audioResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+
+        toast('✅ Audio généré !', 'success');
+    } catch (err) {
+        setStatus('<i class="fas fa-exclamation-circle"></i> ' + (err.message || 'Erreur inconnue'), 'error');
+    } finally {
+        document.getElementById('generateBtn').disabled = false;
+    }
+}
+
+function downloadAudio() {
+    if (!currentAudio) return;
+    window.location.href = currentAudio.downloadUrl;
+    toast('📥 Téléchargement en cours...', 'success');
+}
+
+function resetForm() {
+    // Supprimer le fichier du serveur
+    if (currentAudio && currentAudio.token) {
+        fetch(`/api/voice/${currentAudio.token}`, { method: 'DELETE' }).catch(() => {});
+    }
+
+    // Vider le lecteur
+    const player = document.getElementById('audioPlayer');
+    player.pause();
+    player.src = '';
+    currentAudio = null;
+
+    // Cacher le résultat
+    document.getElementById('audioResult').classList.remove('show');
+    hideStatus();
+    document.getElementById('text').focus();
+}
+</script>
+
+</body>
+</html>

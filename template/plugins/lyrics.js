@@ -1,241 +1,187 @@
-const axios = require("axios");
-
-let GENIUS_TOKEN = "";
-let MUSIXMATCH_API_KEY = "";
-
-try {
-    const apiKeys = require("../apiKeys.json");
-    GENIUS_TOKEN = apiKeys.GENIUS_TOKEN || "";
-    MUSIXMATCH_API_KEY = apiKeys.MUSIXMATCH_API_KEY || "";
-} catch {}
-
-GENIUS_TOKEN = process.env.GENIUS_TOKEN || GENIUS_TOKEN;
-MUSIXMATCH_API_KEY = process.env.MUSIXMATCH_API_KEY || MUSIXMATCH_API_KEY;
-
-// Supprime les accents et caractères spéciaux, et met en minuscules
-function normalizeText(str) {
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/gi, "").trim().toLowerCase();
-}
-
-// Génère des variantes de titre pour la recherche
-function generateTitleVariants(query) {
-    const variants = new Set();
-    const q = query.trim();
-    variants.add(q);
-    variants.add(normalizeText(q));
-    // Enlever les articles
-    variants.add(q.replace(/\b(the|la|le|les|un|une|de|du|des)\b/gi, '').trim());
-    variants.add(normalizeText(q.replace(/\b(the|la|le|les|un|une|de|du|des)\b/gi, '').trim()));
-    // Remplacer colour/color
-    const colourVariants = [q, q.replace(/colour/gi, 'color'), q.replace(/color/gi, 'colour')];
-    colourVariants.forEach(v => variants.add(v));
-    // Retourner tableau
-    return [...variants].filter(Boolean);
-}
-
-async function getLyricsFromOvh(artist, title) {
-    const attempts = [];
-    const titleVariants = generateTitleVariants(title);
-    const artistVariants = artist ? [artist, normalizeText(artist)] : [''];
-
-    for (const art of artistVariants) {
-        for (const tit of titleVariants) {
-            attempts.push({ artist: art, title: tit });
-        }
-    }
-
-    for (const attempt of attempts) {
-        const artistPart = attempt.artist ? encodeURIComponent(attempt.artist) : "";
-        const titlePart = encodeURIComponent(attempt.title);
-        const url = artistPart
-            ? `https://api.lyrics.ovh/v1/${artistPart}/${titlePart}`
-            : `https://api.lyrics.ovh/v1/${titlePart}`;
-        try {
-            const res = await axios.get(url, { timeout: 15000 });
-            if (res.data && res.data.lyrics) return res.data.lyrics;
-        } catch (err) {
-            // continue
-        }
-    }
-    return null;
-}
-
-async function getLyricsFromLrclib(artist, title) {
-    const queries = [];
-    const titleVariants = generateTitleVariants(title || '');
-    const artistVariants = artist ? [artist, normalizeText(artist)] : [''];
-
-    for (const art of artistVariants) {
-        for (const tit of titleVariants) {
-            if (art && tit) queries.push(`https://lrclib.net/api/search?q=${encodeURIComponent(`${art} ${tit}`)}`);
-            queries.push(`https://lrclib.net/api/search?q=${encodeURIComponent(tit)}`);
-        }
-    }
-
-    // Dédupliquer les URLs
-    const uniqueQueries = [...new Set(queries)];
-
-    for (const url of uniqueQueries) {
-        try {
-            const res = await axios.get(url, { timeout: 15000 });
-            if (Array.isArray(res.data) && res.data.length > 0) {
-                const best = res.data[0];
-                if (best.plainLyrics) return best.plainLyrics;
-                if (best.syncedLyrics) return best.syncedLyrics;
-            } else if (res.data && (res.data.plainLyrics || res.data.syncedLyrics)) {
-                return res.data.plainLyrics || res.data.syncedLyrics;
-            }
-        } catch (err) {
-            // continue
-        }
-    }
-    return null;
-}
-
-function splitText(text, maxLength = 4000) {
-    const chunks = [];
-    let current = "";
-    const lines = text.split("\n");
-    for (const line of lines) {
-        if (current.length + line.length + 1 > maxLength) {
-            if (current.trim()) chunks.push(current.trim());
-            current = line + "\n";
-        } else {
-            current += line + "\n";
-        }
-    }
-    if (current.trim()) chunks.push(current.trim());
-    return chunks;
-}
+// template/plugins/lyrics.js — Recherche de paroles via l'API Marco Lyrics
+const axios = require('axios');
 
 module.exports = {
-    name: "lyrics",
-    alias: ["ly", "paroles"],
-    category: "music",
-    desc: "Recherche les paroles complètes d'une chanson",
-    usage: "lyrics <nom de la chanson>",
-    async execute(sock, message, args, cmd) {
-        const cfg = sock.config;
-        const prefix = cfg.prefix || ".";
-        const jid = message.key.remoteJid;
-        const query = args.join(" ").trim();
+    name: 'lyrics',
+    aliases: ['ly', 'paroles', 'parole'],
+    category: 'music',
+    desc: 'Recherche les paroles d\'une chanson',
+    usage: '.lyrics <titre> [artiste]',
 
+    async execute(sock, msg, args, cmd) {
+        const jid = msg.key.remoteJid;
+        const cfg = sock.config || {};
+        const prefix = cfg.prefix || '.';
+
+        const query = args.join(' ').trim();
+
+        // Si pas d'argument
         if (!query) {
             return sock.sendMessage(jid, {
-                text: `🎵 *𝐌𝐀𝐑𝐂𝐎-𝐌𝐈𝐍𝐈-𝐋𝐘𝐑𝐈𝐂𝐒*\n\nUtilisation :\n${prefix}lyrics nom de la chanson\n\nExemple :\n${prefix}lyrics Hoist the Colours`
-            }, { quoted: message });
+                text: `🎵 *𝐌𝐚𝐫𝐜𝐨 𝐋𝐲𝐫𝐢𝐜𝐬*\n\n` +
+                      `Utilisation :\n` +
+                      `• ${prefix}lyrics <titre>\n` +
+                      `• ${prefix}lyrics <titre> <artiste>\n\n` +
+                      `Exemples :\n` +
+                      `• ${prefix}lyrics Hoist the Colours\n` +
+                      `• ${prefix}lyrics Dernière danse Indila\n` +
+                      `• ${prefix}lyrics Believer Imagine Dragons\n\n` +
+                      `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 𝑀𝑟 𝑀𝑎𝑟𝑐𝑜`
+            }, { quoted: msg });
         }
 
+        // Réaction de chargement
         try {
-            await sock.sendMessage(jid, { react: { text: "🎵", key: message.key } });
+            await sock.sendMessage(jid, { react: { text: '⏳', key: msg.key } });
+        } catch {}
 
-            // 1. Recherche métadonnées (optionnelle)
-            let genius = null;
-            let musixmatch = null;
-            try { genius = await searchGenius(query); } catch (e) {}
-            try { musixmatch = await searchMusixmatch(query); } catch (e) {}
+        // Récupérer l'URL de base depuis la config (utilise le même serveur)
+        const publicUrl = cfg.publicUrl || 'https://marco-xmd-v2.onrender.com';
+        const apiUrl = `${publicUrl}/api/lyrics/search?q=${encodeURIComponent(query)}`;
 
-            let artist = "";
-            let title = "";
-            const song = genius || musixmatch;
-            if (song) {
-                artist = song.artist;
-                title = song.title;
-            } else {
-                // Si pas de métadonnées, on utilise la requête comme titre
-                title = query;
-                artist = "";
+        try {
+            const res = await axios.get(apiUrl, { timeout: 30000 });
+
+            if (!res.data || !res.data.ok) {
+                throw new Error('Réponse invalide du serveur');
             }
 
-            // 2. Recherche des paroles avec les variantes
-            let fullLyrics = null;
+            const { lyrics, video } = res.data;
 
-            // D'abord via lyrics.ovh, puis lrclib
-            fullLyrics = await getLyricsFromOvh(artist, title);
-            if (!fullLyrics) fullLyrics = await getLyricsFromLrclib(artist, title);
+            const title = video?.title || query;
+            const artist = video?.artist || '';
+            const thumbnail = video?.thumbnail || '';
+            const duration = video?.duration || '';
+            const views = video?.views || 0;
 
-            // Si toujours rien, on essaie juste avec la requête brute (sans métadonnées)
-            if (!fullLyrics && song) {
-                fullLyrics = await getLyricsFromOvh("", query);
-                if (!fullLyrics) fullLyrics = await getLyricsFromLrclib("", query);
-            }
+            // Formatage des vues
+            let viewsText = '';
+            if (views >= 1e9) viewsText = (views / 1e9).toFixed(1) + 'B';
+            else if (views >= 1e6) viewsText = (views / 1e6).toFixed(1) + 'M';
+            else if (views >= 1e3) viewsText = (views / 1e3).toFixed(1) + 'K';
+            else if (views > 0) viewsText = String(views);
 
-            if (fullLyrics) {
-                const chunks = splitText(fullLyrics, 4000);
-                const total = chunks.length;
+            // Construire le message
+            let text = `╔════════════════════════════╗\n`;
+            text += `║   🎵  𝐌𝐚𝐫𝐜𝐨_𝐋𝐲𝐫𝐢𝐜𝐬  🎵\n`;
+            text += `╚════════════════════════════╝\n\n`;
 
-                let header = `╭━━━〔 🎵 𝐌𝐀𝐑𝐂𝐎-𝐌𝐈𝐍𝐈-𝐋𝐘𝐑𝐈𝐂𝐒 〕━━━╮\n`;
-                if (title) header += `┃ 🎶 Titre : ${title}\n`;
-                if (artist) header += `┃ 👤 Artiste : ${artist}\n`;
-                header += `╰━━━━━━━━━━━━━━━━━━╯\n\n`;
+            text += `╭━━━〔 🎶 𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧𝐬 〕━━━╮\n`;
+            text += `┃  🎵  𝐓𝐢𝐭𝐫𝐞   : ${title}\n`;
+            if (artist) text += `┃  👤  𝐀𝐫𝐭𝐢𝐬𝐭𝐞 : ${artist}\n`;
+            if (duration) text += `┃  ⏱️  𝐃𝐮𝐫𝐞́𝐞   : ${duration}\n`;
+            if (viewsText) text += `┃  👀  𝐕𝐮𝐞𝐬    : ${viewsText}\n`;
+            text += `╰━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n`;
 
-                if (total === 1) {
-                    let text = header + chunks[0] + `\n\n> Powered by ©Mr Marco`;
-                    await sock.sendMessage(jid, { text }, { quoted: message });
+            if (lyrics) {
+                // Découper les paroles si trop longues (limite WhatsApp ≈ 65k, mais on fait des morceaux de 4000 pour la lisibilité)
+                const header = text;
+                const footer = `\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜'}`;
+
+                const fullMessage = header + lyrics + footer;
+
+                if (fullMessage.length <= 4000) {
+                    // Un seul message avec l'image
+                    if (thumbnail) {
+                        try {
+                            await sock.sendMessage(jid, {
+                                image: { url: thumbnail },
+                                caption: fullMessage
+                            }, { quoted: msg });
+                        } catch {
+                            await sock.sendMessage(jid, { text: fullMessage }, { quoted: msg });
+                        }
+                    } else {
+                        await sock.sendMessage(jid, { text: fullMessage }, { quoted: msg });
+                    }
                 } else {
-                    await sock.sendMessage(jid, {
-                        text: header + `📜 *Paroles complètes (${total} parties)*`
-                    }, { quoted: message });
+                    // Découper en plusieurs messages
+                    if (thumbnail) {
+                        try {
+                            await sock.sendMessage(jid, {
+                                image: { url: thumbnail },
+                                caption: header + `📜 *Paroles complètes (découpées en plusieurs parties)*`
+                            }, { quoted: msg });
+                        } catch {
+                            await sock.sendMessage(jid, {
+                                text: header + `📜 *Paroles complètes (découpées en plusieurs parties)*`
+                            }, { quoted: msg });
+                        }
+                    }
+
+                    const chunkSize = 4000;
+                    const chunks = [];
+                    let current = '';
+                    const lines = lyrics.split('\n');
+
+                    for (const line of lines) {
+                        if ((current + line).length > chunkSize) {
+                            chunks.push(current);
+                            current = line + '\n';
+                        } else {
+                            current += line + '\n';
+                        }
+                    }
+                    if (current.trim()) chunks.push(current);
 
                     for (let i = 0; i < chunks.length; i++) {
                         let part = chunks[i];
-                        if (i === chunks.length - 1) part += `\n\n> Powered by ©Mr Marco`;
+                        if (i === chunks.length - 1) {
+                            part += `\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜'}`;
+                        }
                         await sock.sendMessage(jid, { text: part });
+                        await new Promise(r => setTimeout(r, 800));
                     }
                 }
             } else {
-                let text = `╭━━━〔 🎵 𝐌𝐀𝐑𝐂𝐎-𝐌𝐈𝐍𝐈-𝐋𝐘𝐑𝐈𝐂𝐒 〕━━━╮\n`;
-                if (title) text += `┃ 🎶 Titre : ${title}\n`;
-                if (artist) text += `┃ 👤 Artiste : ${artist}\n`;
-                text += `╰━━━━━━━━━━━━━━━━━━╯\n\n❌ Paroles introuvables pour cette chanson.\n> Powered by ©Mr Marco`;
-                await sock.sendMessage(jid, { text }, { quoted: message });
+                // Pas de paroles trouvées : on affiche quand même les infos + image
+                text += `╭━━━〔 ⚠️ 𝐏𝐚𝐫𝐨𝐥𝐞𝐬 〕━━━╮\n`;
+                text += `┃  ❌  Paroles introuvables.\n`;
+                text += `┃  💡  Essayez avec un autre titre\n`;
+                text += `┃  📝  ou vérifiez l'orthographe.\n`;
+                text += `╰━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n`;
+                text += `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜'}`;
+
+                if (thumbnail) {
+                    try {
+                        await sock.sendMessage(jid, {
+                            image: { url: thumbnail },
+                            caption: text
+                        }, { quoted: msg });
+                    } catch {
+                        await sock.sendMessage(jid, { text }, { quoted: msg });
+                    }
+                } else {
+                    await sock.sendMessage(jid, { text }, { quoted: msg });
+                }
             }
-        } catch (error) {
-            console.error("LYRICS ERROR:", error);
+
+            // Réaction succès
+            try {
+                await sock.sendMessage(jid, { react: { text: '✅', key: msg.key } });
+            } catch {}
+
+        } catch (err) {
+            console.error('❌ Erreur lyrics:', err.message);
+
+            try {
+                await sock.sendMessage(jid, { react: { text: '❌', key: msg.key } });
+            } catch {}
+
+            let errorMsg = '❌ Impossible de récupérer les paroles.';
+            if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+                errorMsg += '\n⚠️ Le serveur Marco Lyrics est injoignable.';
+            } else if (err.response?.status === 404) {
+                errorMsg += '\n⚠️ Aucune chanson trouvée pour cette recherche.';
+            } else if (err.response?.status === 500) {
+                errorMsg += '\n⚠️ Erreur du serveur. Réessayez plus tard.';
+            } else if (err.message) {
+                errorMsg += `\n_Détail : ${err.message}_`;
+            }
+
             await sock.sendMessage(jid, {
-                text: "❌ Une erreur est survenue pendant la recherche.\n\n> Powered by ©Mr Marco"
-            }, { quoted: message });
+                text: `${errorMsg}\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜'}`
+            }, { quoted: msg });
         }
     }
 };
-
-async function searchGenius(query) {
-    if (!GENIUS_TOKEN) return null;
-    const response = await axios.get("https://api.genius.com/search", {
-        params: { q: query },
-        headers: { Authorization: `Bearer ${GENIUS_TOKEN}` },
-        timeout: 10000
-    });
-    const hits = response.data?.response?.hits || [];
-    if (!hits.length) return null;
-    const song = hits[0].result;
-    return {
-        title: song.title,
-        artist: song.primary_artist?.name || "Inconnu",
-        url: song.url,
-        thumbnail: song.song_art_image_thumbnail_url
-    };
-}
-
-async function searchMusixmatch(query) {
-    if (!MUSIXMATCH_API_KEY) return null;
-    const response = await axios.get("https://api.musixmatch.com/ws/1.1/track.search", {
-        params: {
-            apikey: MUSIXMATCH_API_KEY,
-            q_track: query,
-            page_size: 1,
-            s_track_rating: "desc"
-        },
-        timeout: 10000
-    });
-    const tracks = response.data?.message?.body?.track_list || [];
-    if (!tracks.length) return null;
-    const track = tracks[0].track;
-    return {
-        title: track.track_name,
-        artist: track.artist_name,
-        album: track.album_name,
-        url: track.track_share_url,
-        hasLyrics: Boolean(track.has_lyrics)
-    };
-}

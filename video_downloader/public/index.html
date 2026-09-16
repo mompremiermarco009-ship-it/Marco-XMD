@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Video Downloader | MARCO-XMD</title>
+<link rel="icon" type="image/png" href="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css?v=21">
+<script>
+(function(){
+  var s = localStorage.getItem('marco-theme');
+  var d = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', s || (d ? 'dark' : 'light'));
+})();
+</script>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <div class="brand">
+      <img src="https://i.postimg.cc/mrD86FZ3/Marcoxmd-logo.png" alt="MARCO-XMD">
+      <div class="brand-info">
+        <h1>Video Downloader</h1>
+        <span>MARCO-XMD</span>
+      </div>
+    </div>
+    <div class="navbar-actions">
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-sun icon-sun"></i>
+        <i class="fas fa-moon icon-moon"></i>
+      </button>
+      <a class="nav-btn" href="/">
+        <i class="fas fa-arrow-left"></i>
+        <span>Retour</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-hero">
+    <div class="ph-icon"><i class="fas fa-download"></i></div>
+    <h2>Video Downloader</h2>
+    <p>Téléchargez des vidéos depuis YouTube, Facebook, Instagram et TikTok.</p>
+  </div>
+
+  <div class="card">
+    <div class="url-input-wrap">
+      <input type="text" id="videoUrl" placeholder="Collez le lien de la vidéo ici..." onkeydown="if(event.key==='Enter') analyzeVideo();">
+      <button id="analyzeBtn" onclick="analyzeVideo()">
+        <i class="fas fa-search"></i> Analyser
+      </button>
+    </div>
+    <div class="platforms">
+      <div class="platform yt"><i class="fab fa-youtube"></i> YouTube</div>
+      <div class="platform fb"><i class="fab fa-facebook"></i> Facebook</div>
+      <div class="platform ig"><i class="fab fa-instagram"></i> Instagram</div>
+      <div class="platform tk"><i class="fab fa-tiktok"></i> TikTok</div>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Analyse de la vidéo en cours...</p>
+  </div>
+
+  <div class="video-result" id="videoResult">
+    <div class="card">
+      <div class="video-preview">
+        <img id="videoThumb" src="" alt="Miniature" onerror="this.style.display='none'">
+        <div class="video-info">
+          <h3 id="videoTitle">—</h3>
+          <div class="vi-meta">
+            <span><i class="fas fa-clock"></i> <span id="videoDuration">—</span></span>
+            <span><i class="fas fa-eye"></i> <span id="videoViews">—</span></span>
+            <span><i class="fas fa-user"></i> <span id="videoAuthor">—</span></span>
+          </div>
+        </div>
+      </div>
+      <h4 class="format-title">Choisissez le format</h4>
+      <p class="format-subtitle">Le fichier sera téléchargé directement sur votre appareil.</p>
+      <div class="format-grid">
+        <button class="format-btn" onclick="downloadVideo('mp4','720')">
+          <i class="fas fa-video"></i>
+          <div class="fb-label">MP4 HD</div>
+          <div class="fb-size">720p · Vidéo</div>
+        </button>
+        <button class="format-btn" onclick="downloadVideo('mp4','360')">
+          <i class="fas fa-video"></i>
+          <div class="fb-label">MP4 SD</div>
+          <div class="fb-size">360p · Léger</div>
+        </button>
+        <button class="format-btn" onclick="downloadVideo('mp3','128')">
+          <i class="fas fa-music"></i>
+          <div class="fb-label">MP3 Audio</div>
+          <div class="fb-size">128 kbps</div>
+        </button>
+        <button class="format-btn" onclick="downloadVideo('mp3','320')">
+          <i class="fas fa-music"></i>
+          <div class="fb-label">MP3 HQ</div>
+          <div class="fb-size">320 kbps</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Résultat du téléchargement (Option C) -->
+  <div class="video-result" id="downloadResult">
+    <div class="card">
+      <div class="dl-success">
+        <div class="dl-icon"><i class="fas fa-circle-check"></i></div>
+        <div class="dl-title">Téléchargement terminé !</div>
+        <div class="dl-meta" id="dlMeta">—</div>
+      </div>
+      <div class="dl-player" id="dlPlayerWrap">
+        <video id="dlPlayer" controls playsinline preload="metadata"></video>
+      </div>
+      <div class="audio-actions">
+        <button class="btn-dl-primary" onclick="downloadFile()">
+          <i class="fas fa-download"></i> Enregistrer sur mon appareil
+        </button>
+        <button class="btn-dl-outline" onclick="resetDownload()">
+          <i class="fas fa-rotate-left"></i> Nouveau téléchargement
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="steps-head"><i class="fas fa-list-check"></i> Comment utiliser</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title"><i class="fas fa-link"></i> Collez le lien</div>
+          <div class="step-text">Copiez l'URL de la vidéo depuis YouTube, Facebook, Instagram ou TikTok.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title"><i class="fas fa-magnifying-glass"></i> Analysez</div>
+          <div class="step-text">Cliquez sur <b>Analyser</b> pour récupérer les infos de la vidéo.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title"><i class="fas fa-sliders"></i> Choisissez</div>
+          <div class="step-text">MP4 pour la vidéo, MP3 pour l'audio uniquement.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title"><i class="fas fa-circle-down"></i> Enregistrez</div>
+          <div class="step-text">Prévisualisez puis enregistrez dans votre dossier Téléchargements.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box-privacy">
+    <i class="fas fa-shield-alt"></i>
+    <div>
+      <strong>Confidentialité :</strong> Vos fichiers sont temporaires et supprimés automatiquement après 30 minutes. Personne d'autre n'y a accès.
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  © 2026 <strong>MARCO-XMD</strong> · by Marco Project · Tous droits réservés
+</footer>
+
+<div class="toast" id="toast"></div>
+<script src="./app.js?v=21"></script>
+</body>
+</html>

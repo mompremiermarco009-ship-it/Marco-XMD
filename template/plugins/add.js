@@ -1,77 +1,81 @@
-// plugins/add.js – version améliorée multi-numéros et mentions
+const { isAuthorized, isGroupAdmin, isBotAdmin, normalizeNumber } = require('../utils/auth');
+
 module.exports = {
     name: 'add',
     aliases: ['ajouter', 'invite'],
-    description: 'Ajoute un ou plusieurs membres au groupe',
-    usage: '.add <num1> <num2> ... ou .add @user @user2',
-    async execute(sock, message, args) {
-        const jid = message.key.remoteJid;
+    category: 'group',
+    desc: 'Ajoute un ou plusieurs membres au groupe',
+    usage: '.add <numéro> [<numéro>] ou .add @user',
+
+    async execute(sock, msg, args) {
+        const jid = msg.key.remoteJid;
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+
         if (!jid.endsWith('@g.us')) {
-            return sock.sendMessage(jid, { text: '❌ Cette commande ne fonctionne que dans les groupes.\n\n> Powered by ©Mr Marco' }, { quoted: message });
+            return sock.sendMessage(jid, { text: '❌ Commande utilisable uniquement dans un groupe.' }, { quoted: msg });
         }
 
-        const rawNumbers = args.map(a => a.replace(/[^0-9]/g, '')).filter(n => n.length >= 10);
-        const mentions = message.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+        // Récupérer les numéros et mentions
+        const rawNumbers = args.map(a => normalizeNumber(a)).filter(n => n.length >= 10);
+        const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
 
         if (rawNumbers.length === 0 && mentions.length === 0) {
-            return sock.sendMessage(jid, { text: '❌ Veuillez fournir au moins un numéro ou mentionner un membre.\nExemple : .add 509xxxxxxxx 509yyyyyyyy\n\n> Powered by ©Mr Marco' }, { quoted: message });
+            return sock.sendMessage(jid, {
+                text: `❌ *Utilisation :*\n• .add 509xxxxxxxx\n• .add @user\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
         }
 
+        // Vérifier les permissions
+        const senderJid = msg.key.participant || msg.key.remoteJid;
+        const senderAdmin = await isGroupAdmin(sock, jid, senderJid);
+        const isOwner = isAuthorized(sock, msg, cfg);
+        const botAdmin = await isBotAdmin(sock, jid);
+
+        if (!senderAdmin && !isOwner) {
+            return sock.sendMessage(jid, { text: '❌ Vous devez être admin du groupe.' }, { quoted: msg });
+        }
+        if (!botAdmin) {
+            return sock.sendMessage(jid, { text: '❌ Je dois être admin pour ajouter des membres.' }, { quoted: msg });
+        }
+
+        // Construire la liste des cibles
         let targets = rawNumbers.map(n => n + '@s.whatsapp.net');
         for (const m of mentions) {
             if (!targets.includes(m)) targets.push(m);
         }
 
         try {
-            const metadata = await sock.groupMetadata(jid);
-            const participants = metadata.participants;
+            const meta = await sock.groupMetadata(jid);
+            const participants = meta.participants.map(p => p.id);
 
-            const sender = message.key.participant || message.key.remoteJid;
-            const senderInfo = participants.find(p => p.id === sender);
-            if (!senderInfo || (senderInfo.admin !== 'admin' && senderInfo.admin !== 'superadmin')) {
-                return sock.sendMessage(jid, { text: '❌ Vous devez être administrateur pour ajouter des membres.\n\n> Powered by ©Mr Marco' }, { quoted: message });
-            }
-
-            const botLid = sock.user?.lid || '';
-            const botJid = sock.user?.id || '';
-            const botNum = botJid.split(':')[0].replace(/[^0-9]/g, '');
-            let botInfo = participants.find(p => p.id === botLid || p.id === botJid || p.id.includes(botNum));
-
-            if (!botInfo || (botInfo.admin !== 'admin' && botInfo.admin !== 'superadmin')) {
-                return sock.sendMessage(jid, { text: '❌ Le bot doit être administrateur pour ajouter des membres.\n\n> Powered by ©Mr Marco' }, { quoted: message });
-            }
-
-            const alreadyMember = targets.filter(t => participants.some(p => p.id === t));
-            const toAdd = targets.filter(t => !participants.some(p => p.id === t));
+            const alreadyMember = targets.filter(t => participants.includes(t));
+            const toAdd = targets.filter(t => !participants.includes(t));
 
             if (toAdd.length === 0) {
-                return sock.sendMessage(jid, { text: '❌ Tous ces membres sont déjà dans le groupe.\n\n> Powered by ©Mr Marco' }, { quoted: message });
+                return sock.sendMessage(jid, { text: '❌ Tous ces membres sont déjà dans le groupe.' }, { quoted: msg });
             }
 
             await sock.groupParticipantsUpdate(jid, toAdd, 'add');
 
-            let reply = '✅ Membres ajoutés :\n';
-            for (const t of toAdd) {
-                reply += `- @${t.split('@')[0]}\n`;
-            }
+            let text = `╔════════════════════════╗\n`;
+            text += `║   ✅  𝐀𝐣𝐨𝐮𝐭𝐞́(𝐬)\n`;
+            text += `╚════════════════════════╝\n\n`;
+
+            for (const t of toAdd) text += `┃  ✅  @${t.split('@')[0]}\n`;
+
             if (alreadyMember.length > 0) {
-                reply += '\n⚠️ Déjà membres :\n';
-                for (const t of alreadyMember) {
-                    reply += `- @${t.split('@')[0]}\n`;
-                }
+                text += `\n╭━━━〔 ⚠️ 𝐃𝐞́𝐣𝐚̀ 𝐦𝐞𝐦𝐛𝐫𝐞𝐬 〕━━━╮\n`;
+                for (const t of alreadyMember) text += `┃  ⚠️  @${t.split('@')[0]}\n`;
+                text += `╰━━━━━━━━━━━━━━━━━━━━╯\n`;
             }
-            reply += '\n> Powered by ©Mr Marco';
 
-            await sock.sendMessage(jid, {
-                text: reply,
-                mentions: toAdd
-            }, { quoted: message });
+            text += `\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
 
+            await sock.sendMessage(jid, { text, mentions: toAdd }, { quoted: msg });
         } catch (err) {
-            console.error('Erreur plugin add:', err);
-            await sock.sendMessage(jid, {
-                text: `⚠️ Impossible d'ajouter ces numéros. Vérifiez que les numéros sont valides et acceptent les invitations de groupe.\nErreur : ${err.message}\n\n> Powered by ©Mr Marco`
-            }, { quoted: message });
+            console.error('Erreur add:', err.message);
+            await sock.sendMessage(jid, { text: `⚠️ Impossible d'ajouter. Vérifiez que les numéros acceptent les invitations.\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}` }, { quoted: msg });
         }
     }
 };

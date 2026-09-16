@@ -1,43 +1,37 @@
-// script/runner.js
-// Version améliorée : parallax, animation de course, particules de poussière,
-// physique de saut variable (jump-cut), squash & stretch à l'atterrissage,
-// petits sons synthétisés, boucle en requestAnimationFrame (delta-time).
 export default function initRunner(container, controlsContainer) {
     container.innerHTML = `
-        <canvas id="runnerCanvas" class="game-canvas" style="width:100%; max-width:400px; height:200px; border-radius:10px; display:block; margin:0 auto; background:#87CEEB;"></canvas>
-        <div id="runnerScoreLine" style="text-align:center; margin-top:6px; font-weight:700; color:var(--text, #111827); font-size:14px;"></div>
+        <canvas id="runnerCanvas" style="width:100%; max-width:400px; height:220px; display:block; margin:0 auto; border-radius:12px; touch-action:none;"></canvas>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-soft);">
+            <span id="runnerScore">🏁 0 · 🪙 0</span>
+            <span id="runnerSoundToggle" style="cursor:pointer;">🔊</span>
+        </div>
     `;
     controlsContainer.innerHTML = `
-        <div style="display:flex; justify-content:center; gap:16px; margin-top:10px;">
-            <button id="btnJump" style="padding:14px 26px; font-size:1.1rem; background:var(--primary,#3b82f6); color:#fff; border:none; border-radius:10px; font-weight:bold;">⬆️ Sauter</button>
-            <button id="btnSlide" style="padding:14px 26px; font-size:1.1rem; background:var(--primary,#3b82f6); color:#fff; border:none; border-radius:10px; font-weight:bold;">⬇️ Glisser</button>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+            <button id="runnerJump" style="padding:16px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-weight:800; font-size:1rem; cursor:pointer; user-select:none;">⬆️ SAUTER</button>
+            <button id="runnerSlide" style="padding:16px; background:var(--warning); color:#fff; border:none; border-radius:12px; font-weight:800; font-size:1rem; cursor:pointer; user-select:none;">⬇️ GLISSER</button>
         </div>
-        <button id="restartRunner" style="margin-top:10px; padding:8px 18px; font-size:0.9rem; width:100%;">🔄 Recommencer</button>
+        <button id="runnerRestart" style="margin-top:10px; padding:10px; width:100%; border-radius:10px; background:var(--surface-alt); color:var(--text); border:1px solid var(--border); font-weight:700; cursor:pointer;">🔄 Recommencer</button>
     `;
 
     const canvas = document.getElementById('runnerCanvas');
     const ctx = canvas.getContext('2d');
-
-    // ---------- Résolution HiDPI (canvas net sur mobile) ----------
-    const CSS_W = 380, CSS_H = 200;
+    const W = 400, H = 220;
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = CSS_W * DPR;
-    canvas.height = CSS_H * DPR;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    const W = CSS_W, H = CSS_H;
 
-    const groundY = H - 40;
-    const playerNormalHeight = 38;
-    const playerSlideHeight = 20;
-    const gravity = 1450;      // px/s²
-    const jumpVelocity = -520; // px/s
+    const GROUND = H - 40;
+    const GRAVITY = 1800;
+    const JUMP_V = -620;
 
-    let player, obstacles, clouds, hills, dust, particles;
-    let distance, speed, baseSpeed, gameover, score, lastTime, rafId, shake, flashTimer;
-    let audioCtx = null;
-    let nextObstacleAt = 700;
+    let player, obstacles, coins, clouds, hills, distance, speed, score, coinsCollected, gameover;
+    let rafId, lastTime, canDoubleJump, soundEnabled = true, audioCtx;
+    let nextObstacle = 500, coinTimer = 300;
 
-    function beep(freq, duration, type = 'sine', gain = 0.05) {
+    function beep(freq, dur, type = 'sine', gain = 0.05) {
+        if (!soundEnabled) return;
         try {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = audioCtx.createOscillator();
@@ -47,364 +41,398 @@ export default function initRunner(container, controlsContainer) {
             g.gain.value = gain;
             osc.connect(g); g.connect(audioCtx.destination);
             osc.start();
-            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-            osc.stop(audioCtx.currentTime + duration);
+            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.stop(audioCtx.currentTime + dur);
         } catch {}
     }
 
     function reset() {
-        player = {
-            x: 55, y: groundY - playerNormalHeight, width: 26, height: playerNormalHeight,
-            vy: 0, jumping: false, sliding: false, squash: 1, runPhase: 0
-        };
+        player = { x: 60, y: GROUND - 42, w: 28, h: 42, vy: 0, jumping: false, sliding: false, runPhase: 0, jumps: 0 };
         obstacles = [];
-        clouds = Array.from({ length: 4 }, () => ({ x: Math.random() * W, y: 20 + Math.random() * 40, s: 0.5 + Math.random() * 0.7 }));
-        hills = Array.from({ length: 3 }, (_, i) => ({ x: i * (W / 2), s: 0.9 - i * 0.15 }));
-        dust = [];
-        particles = [];
-        distance = 0;
-        baseSpeed = 190; // px/s
-        speed = baseSpeed;
-        gameover = false;
-        score = 0;
-        shake = 0;
-        flashTimer = 0;
-        nextObstacleAt = 700;
+        coins = [];
+        clouds = Array.from({ length: 4 }, () => ({ x: Math.random() * W, y: 20 + Math.random() * 50, s: 0.5 + Math.random() * 0.7 }));
+        hills = Array.from({ length: 5 }, (_, i) => ({ x: i * 100, s: 0.6 + i * 0.05 }));
+        distance = 0; speed = 220; score = 0; coinsCollected = 0; gameover = false;
+        canDoubleJump = true;
+        nextObstacle = 500;
+        coinTimer = 300;
+        updateScore();
+    }
+
+    function updateScore() {
+        document.getElementById('runnerScore').textContent = `🏁 ${Math.floor(distance / 10)} · 🪙 ${coinsCollected}`;
     }
 
     function spawnObstacle() {
-        const r = Math.random();
-        let type;
-        if (r < 0.35) type = 'rock';
-        else if (r < 0.65) type = 'spike';
-        else type = 'bird';
-
+        const types = ['rock', 'spike', 'bird'];
+        const type = types[Math.floor(Math.random() * types.length)];
         if (type === 'bird') {
-            const flyHeight = groundY - playerNormalHeight - (Math.random() < 0.5 ? 10 : 45);
-            obstacles.push({ x: W + 20, y: flyHeight, width: 30, height: 18, type, wing: 0 });
+            obstacles.push({ x: W + 20, y: GROUND - 70 - Math.random() * 30, w: 30, h: 20, type, wing: 0 });
+        } else if (type === 'rock') {
+            obstacles.push({ x: W + 20, y: GROUND - 28, w: 26, h: 28, type });
         } else {
-            const height = type === 'spike' ? 26 : 22;
-            const width = type === 'spike' ? 18 : 26;
-            obstacles.push({ x: W + 20, y: groundY - height, width, height, type });
+            obstacles.push({ x: W + 20, y: GROUND - 32, w: 16, h: 32, type });
         }
     }
 
-    function spawnDust() {
-        if (player.jumping) return;
-        dust.push({ x: player.x + 4, y: groundY - 2, vx: -speed * 0.3 - 20, vy: -10 - Math.random() * 15, life: 0.4, r: 2 + Math.random() * 2 });
+    function spawnCoin() {
+        coins.push({ x: W + 20, y: GROUND - 60 - Math.random() * 60, size: 12, phase: 0 });
     }
 
-    function spawnBurst(x, y, color, n = 12) {
-        for (let i = 0; i < n; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const sp = 60 + Math.random() * 120;
-            particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, life: 0.5 + Math.random() * 0.4, color });
+    function jump() {
+        if (gameover) return;
+        if (!player.jumping) {
+            player.vy = JUMP_V;
+            player.jumping = true;
+            player.jumps = 1;
+            canDoubleJump = true;
+            beep(700, 0.1, 'triangle', 0.04);
+        } else if (canDoubleJump && player.jumps === 1) {
+            player.vy = JUMP_V * 0.85;
+            player.jumps = 2;
+            canDoubleJump = false;
+            beep(900, 0.1, 'triangle', 0.04);
         }
     }
+
+    function slideStart() { if (!gameover && !player.jumping) player.sliding = true; }
+    function slideEnd() { player.sliding = false; }
 
     function update(dt) {
-        if (gameover) {
-            for (const p of particles) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 500 * dt; }
-            particles = particles.filter(p => p.life > 0);
-            if (flashTimer > 0) flashTimer -= dt;
-            if (shake > 0) shake -= dt * 3;
-            return;
-        }
+        if (gameover) return;
 
         distance += speed * dt;
-        speed = Math.min(baseSpeed + distance * 0.02, baseSpeed * 2.4);
+        speed = Math.min(220 + distance * 0.02, 480);
 
+        // Physique joueur
         if (player.jumping) {
-            player.vy += gravity * dt;
+            player.vy += GRAVITY * dt;
             player.y += player.vy * dt;
-            if (player.y >= groundY - playerNormalHeight) {
-                player.y = groundY - playerNormalHeight;
-                player.jumping = false;
+            if (player.y >= GROUND - 42) {
+                player.y = GROUND - 42;
                 player.vy = 0;
-                player.squash = 1.35;
-                spawnBurst(player.x + player.width / 2, groundY - 2, '#c9a876', 6);
+                player.jumping = false;
+                player.jumps = 0;
+                canDoubleJump = true;
+                beep(400, 0.06, 'triangle', 0.03);
             }
         }
 
-        player.squash += (1 - player.squash) * Math.min(1, dt * 10);
-
         if (player.sliding && !player.jumping) {
-            player.height = playerSlideHeight;
-            player.y = groundY - playerSlideHeight;
+            player.h = 22;
+            player.y = GROUND - 22;
         } else if (!player.jumping) {
-            player.height = playerNormalHeight;
-            player.y = groundY - playerNormalHeight;
+            player.h = 42;
+            player.y = GROUND - 42;
         }
 
         player.runPhase += speed * dt * 0.05;
 
-        if (!player.jumping && Math.floor(distance / 14) !== Math.floor((distance - speed * dt) / 14)) spawnDust();
-        for (const d of dust) { d.life -= dt; d.x += d.vx * dt; d.y += d.vy * dt; d.vy += 40 * dt; }
-        dust = dust.filter(d => d.life > 0);
+        // Parallaxe
+        clouds.forEach(c => { c.x -= speed * 0.1 * c.s * dt; if (c.x < -60) c.x = W + 60; });
+        hills.forEach(h => { h.x -= speed * 0.3 * h.s * dt; if (h.x < -100) h.x += 500; });
 
-        for (const c of clouds) { c.x -= speed * 0.15 * c.s * dt; if (c.x < -40) c.x = W + 40; }
-        for (const h of hills) { h.x -= speed * 0.35 * h.s * dt; if (h.x < -W / 2) h.x += W; }
+        // Obstacles
+        nextObstacle -= speed * dt;
+        if (nextObstacle <= 0) {
+            spawnObstacle();
+            nextObstacle = 300 + Math.random() * 200 - Math.min(speed - 220, 100);
+        }
 
         for (let i = obstacles.length - 1; i >= 0; i--) {
             const o = obstacles[i];
             o.x -= speed * dt;
             if (o.type === 'bird') o.wing += dt * 12;
-            if (o.x + o.width < 0) { obstacles.splice(i, 1); score++; beep(880, 0.05, 'square', 0.03); }
-        }
-        nextObstacleAt -= speed * dt;
-        if (nextObstacleAt <= 0) {
-            spawnObstacle();
-            nextObstacleAt = 260 + Math.random() * 180 - Math.min(speed - baseSpeed, 120);
+            if (o.x + o.w < 0) { obstacles.splice(i, 1); score++; updateScore(); }
+
+            // Collision
+            const m = 4;
+            if (player.x + m < o.x + o.w && player.x + player.w - m > o.x &&
+                player.y + m < o.y + o.h && player.y + player.h - m > o.y) {
+                gameover = true;
+                beep(100, 0.4, 'sawtooth', 0.1);
+                return;
+            }
         }
 
-        const margin = 4;
-        for (const o of obstacles) {
-            if (player.x + margin < o.x + o.width &&
-                player.x + player.width - margin > o.x &&
-                player.y + margin < o.y + o.height &&
-                player.y + player.height - margin > o.y) {
-                gameover = true;
-                shake = 1;
-                flashTimer = 0.25;
-                spawnBurst(player.x + player.width / 2, player.y + player.height / 2, '#ef4444', 20);
-                beep(120, 0.3, 'sawtooth', 0.08);
-                break;
+        // Coins
+        coinTimer -= speed * dt;
+        if (coinTimer <= 0) {
+            spawnCoin();
+            coinTimer = 250 + Math.random() * 200;
+        }
+        for (let i = coins.length - 1; i >= 0; i--) {
+            const c = coins[i];
+            c.x -= speed * dt;
+            c.phase += dt * 6;
+            if (c.x + c.size < 0) { coins.splice(i, 1); continue; }
+
+            const cx = c.x + c.size / 2, cy = c.y + c.size / 2 + Math.sin(c.phase) * 4;
+            const pcx = player.x + player.w / 2, pcy = player.y + player.h / 2;
+            if (Math.hypot(cx - pcx, cy - pcy) < player.w / 2 + c.size / 2) {
+                coins.splice(i, 1);
+                coinsCollected++;
+                score += 5;
+                beep(1300, 0.1, 'sine', 0.05);
+                updateScore();
             }
         }
     }
 
     function drawBackground() {
-        const g = ctx.createLinearGradient(0, 0, 0, groundY);
-        g.addColorStop(0, '#8ec9f0');
-        g.addColorStop(1, '#cdeaff');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, groundY);
+        // Ciel dégradé
+        const sky = ctx.createLinearGradient(0, 0, 0, GROUND);
+        sky.addColorStop(0, '#87ceeb');
+        sky.addColorStop(0.7, '#c9e7f7');
+        sky.addColorStop(1, '#e6f3ff');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, GROUND);
 
-        ctx.fillStyle = '#a7d8b0';
-        for (const h of hills) {
-            ctx.beginPath();
-            ctx.ellipse(h.x, groundY, W * 0.4, 50 * h.s, 0, Math.PI, 2 * Math.PI);
-            ctx.fill();
-        }
-
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        for (const c of clouds) {
-            ctx.beginPath();
-            ctx.ellipse(c.x, c.y, 18 * c.s, 8 * c.s, 0, 0, Math.PI * 2);
-            ctx.ellipse(c.x + 14 * c.s, c.y + 3, 12 * c.s, 7 * c.s, 0, 0, Math.PI * 2);
-            ctx.ellipse(c.x - 12 * c.s, c.y + 3, 10 * c.s, 6 * c.s, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        ctx.fillStyle = '#8B5A2B';
-        ctx.fillRect(0, groundY, W, H - groundY);
-        ctx.fillStyle = '#6f4520';
-        ctx.fillRect(0, groundY, W, 4);
-        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-        ctx.lineWidth = 2;
-        const dashOffset = (distance * 0.5) % 40;
-        for (let x = -dashOffset; x < W; x += 40) {
-            ctx.beginPath(); ctx.moveTo(x, groundY + 14); ctx.lineTo(x + 18, groundY + 14); ctx.stroke();
-        }
-    }
-
-    function roundRect(x, y, w, h, r) {
+        // Soleil
+        ctx.fillStyle = 'rgba(255,230,150,0.7)';
         ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
+        ctx.arc(W - 70, 45, 30, 0, Math.PI * 2);
         ctx.fill();
+
+        // Collines
+        ctx.fillStyle = '#a7d8b0';
+        hills.forEach(h => {
+            ctx.beginPath();
+            ctx.ellipse(h.x, GROUND, 80 * h.s, 30 * h.s, 0, Math.PI, 2 * Math.PI);
+            ctx.fill();
+        });
+
+        // Nuages
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        clouds.forEach(c => {
+            ctx.beginPath();
+            ctx.ellipse(c.x, c.y, 20 * c.s, 10 * c.s, 0, 0, Math.PI * 2);
+            ctx.ellipse(c.x + 15 * c.s, c.y + 4, 14 * c.s, 9 * c.s, 0, 0, Math.PI * 2);
+            ctx.ellipse(c.x - 14 * c.s, c.y + 4, 12 * c.s, 8 * c.s, 0, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Sol
+        ctx.fillStyle = '#8B5A2B';
+        ctx.fillRect(0, GROUND, W, H - GROUND);
+        ctx.fillStyle = '#6f4520';
+        ctx.fillRect(0, GROUND, W, 3);
+
+        // Lignes du sol
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        const offset = (distance * 0.5) % 40;
+        for (let x = -offset; x < W; x += 40) {
+            ctx.beginPath();
+            ctx.moveTo(x, GROUND + 15);
+            ctx.lineTo(x + 20, GROUND + 15);
+            ctx.stroke();
+        }
     }
 
     function drawPlayer() {
-        const px = player.x, py = player.y, pw = player.width, ph = player.height;
+        const px = player.x, py = player.y, pw = player.w, ph = player.h;
         const cx = px + pw / 2;
 
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        // Ombre
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
         ctx.beginPath();
-        ctx.ellipse(cx, groundY + 2, pw * 0.55, 4, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, GROUND + 2, pw * 0.6, 4, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.save();
-        ctx.translate(cx, py + ph);
-        ctx.scale(1 / player.squash, player.squash);
-        ctx.translate(-cx, -(py + ph));
-
         if (player.sliding && !player.jumping) {
-            ctx.fillStyle = '#f59e0b';
-            roundRect(px - 4, py + ph - 16, pw + 12, 16, 6);
-            ctx.fillStyle = '#111827';
-            ctx.beginPath(); ctx.arc(px + pw + 2, py + ph - 10, 6, 0, Math.PI * 2); ctx.fill();
+            // Position glissée
+            ctx.fillStyle = '#0d6efd';
+            ctx.beginPath();
+            ctx.roundRect(px - 6, py + ph - 20, pw + 12, 20, 8);
+            ctx.fill();
+            // Tête
+            ctx.fillStyle = '#fcd9a8';
+            ctx.beginPath();
+            ctx.arc(px + pw + 4, py + ph - 10, 8, 0, Math.PI * 2);
+            ctx.fill();
+            // Casquette
+            ctx.fillStyle = '#ff4757';
+            ctx.fillRect(px + pw - 3, py + ph - 18, 15, 6);
         } else {
             const legSwing = player.jumping ? 0 : Math.sin(player.runPhase) * 10;
-            ctx.strokeStyle = '#7c2d12'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+
+            // Jambes
+            ctx.strokeStyle = '#1e40af';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.moveTo(cx - 4, py + ph - 14); ctx.lineTo(cx - 4 + legSwing, py + ph);
-            ctx.moveTo(cx + 4, py + ph - 14); ctx.lineTo(cx + 4 - legSwing, py + ph);
+            ctx.moveTo(cx - 4, py + ph - 15);
+            ctx.lineTo(cx - 4 + legSwing, py + ph);
+            ctx.moveTo(cx + 4, py + ph - 15);
+            ctx.lineTo(cx + 4 - legSwing, py + ph);
             ctx.stroke();
-            ctx.strokeStyle = '#c2410c'; ctx.lineWidth = 4;
+
+            // Corps (bleu)
+            ctx.fillStyle = '#0d6efd';
             ctx.beginPath();
-            ctx.moveTo(cx, py + 10); ctx.lineTo(cx - legSwing * 0.7, py + 20);
+            ctx.roundRect(px + 3, py + 12, pw - 6, ph - 22, 6);
+            ctx.fill();
+
+            // Bras
+            const armSwing = -legSwing * 0.7;
+            ctx.strokeStyle = '#0a4db3';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(cx, py + 18);
+            ctx.lineTo(cx - armSwing * 0.8, py + 30);
             ctx.stroke();
-            ctx.fillStyle = '#f59e0b';
-            roundRect(px, py + 6, pw, ph - 14, 6);
+
+            // Tête
             ctx.fillStyle = '#fcd9a8';
-            ctx.beginPath(); ctx.arc(cx, py + 2, 8, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#ef4444';
-            ctx.fillRect(cx - 8, py - 3, 16, 5);
+            ctx.beginPath();
+            ctx.arc(cx, py + 10, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Œil
+            ctx.fillStyle = '#111827';
+            ctx.beginPath();
+            ctx.arc(cx + 3, py + 9, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Casquette
+            ctx.fillStyle = '#ff4757';
+            ctx.beginPath();
+            ctx.ellipse(cx, py + 2, 11, 6, 0, Math.PI, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillRect(cx - 3, py - 2, 6, 4);
         }
-        ctx.restore();
     }
 
     function drawObstacles() {
-        for (const o of obstacles) {
+        obstacles.forEach(o => {
             if (o.type === 'rock') {
                 ctx.fillStyle = '#6b7280';
                 ctx.beginPath();
-                ctx.moveTo(o.x, o.y + o.height);
-                ctx.lineTo(o.x + 4, o.y + 4);
-                ctx.lineTo(o.x + o.width * 0.5, o.y);
-                ctx.lineTo(o.x + o.width - 4, o.y + 6);
-                ctx.lineTo(o.x + o.width, o.y + o.height);
-                ctx.closePath(); ctx.fill();
+                ctx.moveTo(o.x, o.y + o.h);
+                ctx.lineTo(o.x + 4, o.y + 6);
+                ctx.lineTo(o.x + o.w * 0.5, o.y);
+                ctx.lineTo(o.x + o.w - 4, o.y + 6);
+                ctx.lineTo(o.x + o.w, o.y + o.h);
+                ctx.closePath();
+                ctx.fill();
             } else if (o.type === 'spike') {
                 ctx.fillStyle = '#374151';
-                for (let i = 0; i < 3; i++) {
-                    const sx = o.x + i * (o.width / 3);
-                    ctx.beginPath();
-                    ctx.moveTo(sx, o.y + o.height);
-                    ctx.lineTo(sx + o.width / 6, o.y);
-                    ctx.lineTo(sx + o.width / 3, o.y + o.height);
-                    ctx.closePath(); ctx.fill();
-                }
+                ctx.beginPath();
+                ctx.moveTo(o.x, o.y + o.h);
+                ctx.lineTo(o.x + o.w / 2, o.y);
+                ctx.lineTo(o.x + o.w, o.y + o.h);
+                ctx.closePath();
+                ctx.fill();
             } else if (o.type === 'bird') {
-                ctx.fillStyle = '#1f2937';
                 const flap = Math.sin(o.wing) * 8;
+                ctx.fillStyle = '#1f2937';
                 ctx.beginPath();
                 ctx.moveTo(o.x, o.y + 8);
-                ctx.quadraticCurveTo(o.x + o.width / 2, o.y + 8 - flap, o.x + o.width, o.y + 8);
-                ctx.quadraticCurveTo(o.x + o.width / 2, o.y + 8 + flap * 0.4, o.x, o.y + 8);
+                ctx.quadraticCurveTo(o.x + o.w / 2, o.y + 8 - flap, o.x + o.w, o.y + 8);
+                ctx.quadraticCurveTo(o.x + o.w / 2, o.y + 8 + flap * 0.5, o.x, o.y + 8);
                 ctx.fill();
-                ctx.beginPath(); ctx.arc(o.x + o.width - 4, o.y + 6, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#111827';
+                ctx.beginPath();
+                ctx.arc(o.x + o.w - 4, o.y + 6, 3, 0, Math.PI * 2);
+                ctx.fill();
             }
-        }
+        });
     }
 
-    function drawParticles() {
-        for (const d of dust) {
-            ctx.fillStyle = `rgba(230,215,190,${Math.max(d.life / 0.4, 0)})`;
-            ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
-        }
-        for (const p of particles) {
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = Math.max(p.life, 0);
-            ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = 1;
-        }
+    function drawCoins() {
+        coins.forEach(c => {
+            const bob = Math.sin(c.phase) * 4;
+            ctx.save();
+            ctx.translate(c.x + c.size / 2, c.y + c.size / 2 + bob);
+            const scaleX = 0.7 + Math.abs(Math.sin(c.phase * 0.7)) * 0.3;
+            ctx.scale(scaleX, 1);
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.arc(0, 0, c.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffa500';
+            ctx.beginPath();
+            ctx.arc(0, 0, c.size / 2 - 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 9px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('$', 0, 0);
+            ctx.restore();
+        });
     }
 
     function draw() {
-        ctx.save();
-        if (shake > 0) {
-            ctx.translate((Math.random() - 0.5) * 8 * shake, (Math.random() - 0.5) * 8 * shake);
-        }
-        ctx.clearRect(-10, -10, W + 20, H + 20);
         drawBackground();
+        drawCoins();
         drawObstacles();
         drawPlayer();
-        drawParticles();
-        ctx.restore();
-
-        if (flashTimer > 0) {
-            ctx.fillStyle = `rgba(239,68,68,${flashTimer / 0.25 * 0.35})`;
-            ctx.fillRect(0, 0, W, H);
-        }
-
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        roundRect(8, 8, 90, 24, 6);
-        ctx.fillStyle = '#111827';
-        ctx.font = 'bold 14px Inter, sans-serif';
-        ctx.fillText('🏁 ' + score, 16, 25);
 
         if (gameover) {
-            ctx.fillStyle = 'rgba(17,24,39,0.75)';
-            ctx.fillRect(0, H / 2 - 34, W, 68);
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, H / 2 - 50, W, 100);
             ctx.fillStyle = '#fff';
+            ctx.font = 'bold 22px Inter, sans-serif';
             ctx.textAlign = 'center';
-            ctx.font = 'bold 20px Inter, sans-serif';
-            ctx.fillText('💥 Game Over', W / 2, H / 2 - 6);
+            ctx.fillText('💥 Game Over', W / 2, H / 2 - 5);
             ctx.font = '13px Inter, sans-serif';
-            ctx.fillText('Score final : ' + score + ' — Appuie sur Recommencer', W / 2, H / 2 + 16);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillText(`Score: ${score} · Distance: ${Math.floor(distance / 10)}m`, W / 2, H / 2 + 22);
             ctx.textAlign = 'left';
         }
-        document.getElementById('runnerScoreLine').textContent = gameover ? '' : `Distance : ${Math.floor(distance)} m`;
     }
 
     function loop(ts) {
         if (!lastTime) lastTime = ts;
-        let dt = (ts - lastTime) / 1000;
-        dt = Math.min(dt, 1 / 30);
+        const dt = Math.min((ts - lastTime) / 1000, 1 / 30);
         lastTime = ts;
         update(dt);
         draw();
         rafId = requestAnimationFrame(loop);
     }
 
-    function start() {
-        reset();
-        lastTime = 0;
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(loop);
-    }
+    // Boutons
+    const jumpBtn = document.getElementById('runnerJump');
+    jumpBtn.addEventListener('mousedown', jump);
+    jumpBtn.addEventListener('mouseup', jumpCut);
+    jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, { passive: false });
+    jumpBtn.addEventListener('touchend', (e) => { e.preventDefault(); jumpCut(); }, { passive: false });
 
-    function jump() {
-        if (!player.jumping && !gameover && !player.sliding) {
-            player.jumping = true;
-            player.vy = jumpVelocity;
-            player.squash = 0.8;
-            beep(660, 0.12, 'triangle', 0.05);
-        }
-    }
-    function jumpCut() {
-        if (player && player.jumping && player.vy < -150) player.vy = -150;
-    }
-    function slideStart() { if (!gameover && !player.jumping) player.sliding = true; }
-    function slideEnd() { if (player) player.sliding = false; }
+    const slideBtn = document.getElementById('runnerSlide');
+    slideBtn.addEventListener('mousedown', slideStart);
+    slideBtn.addEventListener('mouseup', slideEnd);
+    slideBtn.addEventListener('touchstart', (e) => { e.preventDefault(); slideStart(); }, { passive: false });
+    slideBtn.addEventListener('touchend', (e) => { e.preventDefault(); slideEnd(); }, { passive: false });
 
-    const btnJump = document.getElementById('btnJump');
-    const btnSlide = document.getElementById('btnSlide');
-    btnJump.addEventListener('mousedown', jump);
-    btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, { passive: false });
-    btnJump.addEventListener('mouseup', jumpCut);
-    btnJump.addEventListener('touchend', jumpCut);
-    btnSlide.addEventListener('mousedown', slideStart);
-    btnSlide.addEventListener('touchstart', (e) => { e.preventDefault(); slideStart(); }, { passive: false });
-    btnSlide.addEventListener('mouseup', slideEnd);
-    btnSlide.addEventListener('touchend', slideEnd);
-    document.getElementById('restartRunner').addEventListener('click', start);
+    function jumpCut() { if (player?.jumping && player.vy < -150) player.vy = -150; }
 
-    function keyHandler(e) {
-        if (e.key === 'ArrowUp' || e.key === ' ' || e.code === 'Space') { e.preventDefault(); jump(); }
-        else if (e.key === 'ArrowDown') { e.preventDefault(); slideStart(); }
-    }
-    function keyUpHandler(e) {
-        if (e.key === 'ArrowUp' || e.key === ' ' || e.code === 'Space') jumpCut();
-        else if (e.key === 'ArrowDown') { e.preventDefault(); slideEnd(); }
-    }
-    document.addEventListener('keydown', keyHandler);
-    document.addEventListener('keyup', keyUpHandler);
+    document.getElementById('runnerRestart').addEventListener('click', reset);
+    document.getElementById('runnerSoundToggle').addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        document.getElementById('runnerSoundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+    });
 
-    start();
+    function onKey(e) {
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') { e.preventDefault(); jump(); }
+        else if (e.key === 'ArrowDown' || e.key === 's') { e.preventDefault(); slideStart(); }
+    }
+    function onKeyUp(e) {
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') jumpCut();
+        else if (e.key === 'ArrowDown' || e.key === 's') slideEnd();
+    }
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('keyup', onKeyUp);
+
+    reset();
+    rafId = requestAnimationFrame(loop);
 
     return {
         stop() {
-            if (rafId) cancelAnimationFrame(rafId);
-            document.removeEventListener('keydown', keyHandler);
-            document.removeEventListener('keyup', keyUpHandler);
-            if (audioCtx) { try { audioCtx.close(); } catch {} }
+            cancelAnimationFrame(rafId);
+            document.removeEventListener('keydown', onKey);
+            document.removeEventListener('keyup', onKeyUp);
         }
     };
 }

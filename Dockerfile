@@ -1,28 +1,31 @@
 FROM node:20-slim
 
-# Installation des dépendances natives légères (utiles pour sharp, canvas, etc.)
+# Installer Python, pip, ffmpeg + yt-dlp + deno
 RUN apt-get update && apt-get install -y \
-    libvips-dev \
-    libcairo2-dev \
-    libpango1.0-dev \
-    libjpeg-dev \
-    libgif-dev \
-    librsvg2-dev \
+    python3 python3-pip python3-venv \
+    ffmpeg \
+    curl unzip \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
+# yt-dlp via pip
+RUN pip3 install --no-cache-dir --break-system-packages yt-dlp
+
+# Deno (runtime JS pour YouTube)
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh \
+    && ln -s /usr/local/bin/deno /usr/bin/deno || true
+
 WORKDIR /app
 
-# Copier les fichiers de dépendances en premier (meilleure mise en cache)
 COPY package*.json ./
-RUN npm install
+RUN npm install --omit=dev
 
-# Copier le reste du code source (template, public, server.js, index.js, etc.)
+COPY requirements.txt ./
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt || true
+
 COPY . .
 
-# Le port peut être redéfini par la variable d'environnement (Render, etc.)
 ENV PORT=10000
 EXPOSE 10000
 
-# Lancer le bot
-CMD ["npm", "start"]
+CMD ["node", "start-all.js"]

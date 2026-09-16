@@ -1,92 +1,74 @@
-const config = require("../config.json");
-const { isAuthorized, normalizeNumber } = require("../utils/auth");
-
-async function kick(sock, msg, args) {
-    const jid = msg.key.remoteJid;
-
-    // Vérification d'autorisation (owner ou bot)
-    if (!isAuthorized(sock, msg)) {
-        return sock.sendMessage(jid, {
-            text: "❌owner seulement"
-        }, { quoted: msg });
-    }
-
-    // Vérifier que c'est un groupe
-    if (!jid.endsWith("@g.us")) {
-        return sock.sendMessage(jid, { text: "❌ Cette commande ne peut être utilisée que dans un groupe." }, { quoted: msg });
-    }
-
-    // Identifier la cible
-    let targetJid = null;
-
-    // 1. Si le message est une réponse (quote), on prend l'expéditeur du message cité
-    if (msg.message.extendedTextMessage?.contextInfo?.participant) {
-        targetJid = msg.message.extendedTextMessage.contextInfo.participant;
-    }
-    // 2. Sinon, si args[0] est fourni, on essaie de le traiter comme un numéro ou une mention
-    else if (args.length > 0) {
-        // Vérifier si c'est une mention (le texte contient @ et on a un tableau mentionedJid)
-        const mentioned = msg.message.extendedTextMessage?.contextInfo?.mentionedJid;
-        if (mentioned && mentioned.length > 0) {
-            targetJid = mentioned[0];
-        } else {
-            // Sinon, on suppose que args[0] est un numéro (avec ou sans indicatif)
-            let rawNumber = args[0].replace(/\D/g, '');
-            if (rawNumber) {
-                targetJid = rawNumber + "@s.whatsapp.net";
-            }
-        }
-    }
-
-    if (!targetJid) {
-        return sock.sendMessage(jid, {
-            text: "❌ Veuillez mentionner, répondre à un message ou fournir un numéro valide."
-        }, { quoted: msg });
-    }
-
-    try {
-        // Vérifier que la cible est bien dans le groupe
-        const groupMetadata = await sock.groupMetadata(jid);
-        const participants = groupMetadata.participants.map(p => p.id);
-        if (!participants.includes(targetJid)) {
-            return sock.sendMessage(jid, { text: "❌ Cette personne n'est pas dans le groupe." }, { quoted: msg });
-        }
-
-        // Récupérer les informations du participant ciblé
-        const targetParticipant = groupMetadata.participants.find(p => p.id === targetJid);
-        const targetNumber = normalizeNumber(targetJid);
-        const owners = (config.owner || []).map(n => normalizeNumber(n));
-        const botNumber = normalizeNumber(sock.user.id);
-        const isAdmin = targetParticipant?.admin !== null;
-        const isOwner = owners.includes(targetNumber);
-        const isBot = targetNumber === botNumber;
-
-        // Protections : ne pas kick un admin, un owner ou le bot
-        if (isAdmin) {
-            return sock.sendMessage(jid, { text: "🚫 Impossible d'expulser un administrateur." }, { quoted: msg });
-        }
-        if (isOwner) {
-            return sock.sendMessage(jid, { text: "🚫 Impossible d'expulser le propriétaire du bot." }, { quoted: msg });
-        }
-        if (isBot) {
-            return sock.sendMessage(jid, { text: "🚫 Je ne peux pas m'auto-expulser !" }, { quoted: msg });
-        }
-
-        // Exécution du kick
-        await sock.groupParticipantsUpdate(jid, [targetJid], "remove");
-        await sock.sendMessage(jid, {
-            text: `✅ Utilisateur @${targetNumber} expulsé du groupe.`,
-            mentions: [targetJid]
-        }, { quoted: msg });
-
-    } catch (e) {
-        console.error(e);
-        await sock.sendMessage(jid, { text: "❌ Erreur lors de l'expulsion." }, { quoted: msg });
-    }
-}
+const { isAuthorized, isGroupAdmin, isBotAdmin, normalizeNumber, extractTarget } = require('../utils/auth');
 
 module.exports = {
-    name: "kick",
-    alias: ["expulser", "remove"],
-    execute: kick
+    name: 'kick',
+    aliases: ['expulser', 'remove'],
+    category: 'group',
+    desc: 'Expulse un membre du groupe',
+    usage: '.kick @user / .kick <numéro> / répondre + .kick',
+
+    async execute(sock, msg, args) {
+        const jid = msg.key.remoteJid;
+        const cfg = sock.config || {};
+        const owner = cfg.ownerName || '𝑀𝑟 𝑀𝑎𝑟𝑐𝑜';
+
+        if (!jid.endsWith('@g.us')) {
+            return sock.sendMessage(jid, { text: '❌ Commande utilisable uniquement dans un groupe.' }, { quoted: msg });
+        }
+
+        const target = extractTarget(msg, args);
+        if (!target) {
+            return sock.sendMessage(jid, {
+                text: `❌ *Utilisation :*\n• .kick @user\n• .kick 509xxxxxxxx\n• Répondez à un message + .kick\n\n> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`
+            }, { quoted: msg });
+        }
+
+        const senderJid = msg.key.participant || msg.key.remoteJid;
+        const senderAdmin = await isGroupAdmin(sock, jid, senderJid);
+        const isOwner = isAuthorized(sock, msg, cfg);
+        const botAdmin = await isBotAdmin(sock, jid);
+
+        if (!senderAdmin && !isOwner) {
+            return sock.sendMessage(jid, { text: '❌ Vous devez être admin du groupe.' }, { quoted: msg });
+        }
+        if (!botAdmin) {
+            return sock.sendMessage(jid, { text: '❌ Je dois être admin pour expulser.' }, { quoted: msg });
+        }
+
+        try {
+            const meta = await sock.groupMetadata(jid);
+            const targetParticipant = meta.participants.find(p => p.id === target);
+
+            if (!targetParticipant) {
+                return sock.sendMessage(jid, { text: '❌ Ce membre n\'est pas dans le groupe.' }, { quoted: msg });
+            }
+
+            const targetNumber = normalizeNumber(target);
+            const botNumber = normalizeNumber(sock.user.id);
+            const ownerNum = normalizeNumber(cfg.ownerNumber);
+
+            if (targetParticipant.admin === 'admin' || targetParticipant.admin === 'superadmin') {
+                return sock.sendMessage(jid, { text: '🚫 Impossible d\'expulser un administrateur.' }, { quoted: msg });
+            }
+            if (targetNumber === botNumber) {
+                return sock.sendMessage(jid, { text: '🚫 Je ne peux pas m\'auto-expulser.' }, { quoted: msg });
+            }
+            if (targetNumber === ownerNum) {
+                return sock.sendMessage(jid, { text: '🚫 Impossible d\'expulser le propriétaire.' }, { quoted: msg });
+            }
+
+            await sock.groupParticipantsUpdate(jid, [target], 'remove');
+
+            const text = `╔════════════════════════╗\n` +
+                         `║   👢  𝐄𝐱𝐩𝐮𝐥𝐬𝐢𝐨𝐧\n` +
+                         `╚════════════════════════╝\n\n` +
+                         `┃  👢  @${targetNumber} a été expulsé.\n\n` +
+                         `> 𝑃𝑜𝑤𝑒𝑟𝑒𝑑 𝑏𝑦 ${owner}`;
+
+            await sock.sendMessage(jid, { text, mentions: [target] }, { quoted: msg });
+        } catch (err) {
+            console.error('Erreur kick:', err.message);
+            await sock.sendMessage(jid, { text: '⚠️ Erreur lors de l\'expulsion.' }, { quoted: msg });
+        }
+    }
 };
